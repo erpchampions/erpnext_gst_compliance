@@ -13,7 +13,7 @@ from frappe.model.document import Document
 from frappe.utils.data import cint, format_date, getdate, flt
 from frappe.core.doctype.version.version import get_diff
 
-from erpnext.regional.india.utils import get_gst_accounts
+#from erpnext.regional.india.utils import get_gst_accounts
 
 class EInvoice(Document):
 	def validate(self):
@@ -782,3 +782,34 @@ def delete_e_invoice(doc, method=""):
 			name=doc.get('e_invoice'),
 			ignore_missing=True
 		)
+
+def get_gst_accounts(
+    company=None,
+    account_wise=False,
+    only_reverse_charge=0,
+    only_non_reverse_charge=0,
+):
+    filters = {}
+
+    if company:
+        filters["company"] = company
+    if only_reverse_charge:
+        filters["account_type"] = "Reverse Charge"
+    elif only_non_reverse_charge:
+        filters["account_type"] = ("!=", "Reverse Charge")
+
+    settings = frappe.get_cached_doc("GST Settings", "GST Settings")
+    gst_accounts = settings.get("gst_accounts", filters)
+    result = frappe._dict()
+
+    for row in gst_accounts:
+        for fieldname in GST_ACCOUNT_FIELDS:
+            if not (value := row.get(fieldname)):
+                continue
+
+            if not account_wise:
+                result.setdefault(fieldname, []).append(value)
+            else:
+                result[value] = fieldname
+
+    return result
