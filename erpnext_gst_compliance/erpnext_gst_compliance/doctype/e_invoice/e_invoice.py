@@ -14,6 +14,13 @@ from frappe.utils.data import cint, format_date, getdate, flt
 from frappe.core.doctype.version.version import get_diff
 
 #from erpnext.regional.india.utils import get_gst_accounts
+GST_ACCOUNT_FIELDS = (
+    "cgst_account",
+    "sgst_account",
+    "igst_account",
+    "cess_account",
+    "cess_non_advol_account",
+)
 
 class EInvoice(Document):
 	def validate(self):
