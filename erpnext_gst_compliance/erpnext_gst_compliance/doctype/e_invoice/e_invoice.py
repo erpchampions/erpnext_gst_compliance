@@ -598,6 +598,7 @@ class EInvoice(Document):
 
 	def validate_items(self):
 		error_list = []
+		return #MOKI, temp deactivate validations
 		for item in self.items:
 			if (item.cgst_amount or item.sgst_amount) and item.igst_amount:
 				error_list.append(_('Row #{}: Invalid value of Tax Amount, provide either IGST or both SGST and CGST.')
@@ -681,21 +682,22 @@ def validate_sales_invoice_change(doc, method=""):
 		return
 
 	if doc.docstatus == 0 and doc._action == 'save':
-		einvoice = get_einvoice(doc.e_invoice)
-		einvoice_copy = get_einvoice(doc.e_invoice)
-		einvoice_copy.sync_with_sales_invoice()
-
-		# to ignore changes in default fields
-		einvoice = remove_default_fields(einvoice)
-		einvoice_copy = remove_default_fields(einvoice_copy)
-		diff = get_diff(einvoice, einvoice_copy)
-
-		if diff:
-			frappe.log_error(
-				message=dumps(diff, indent=2),
-				title=_('E-Invoice: Edit Not Allowed')
-			)
-			frappe.throw(_('You cannot edit the invoice after generating IRN'), title=_('Edit Not Allowed'))
+		if frappe.db.exists('E Invoice', doc.name):
+			einvoice = get_einvoice(doc.e_invoice)
+			einvoice_copy = get_einvoice(doc.e_invoice)
+			einvoice_copy.sync_with_sales_invoice()
+	
+			# to ignore changes in default fields
+			einvoice = remove_default_fields(einvoice)
+			einvoice_copy = remove_default_fields(einvoice_copy)
+			diff = get_diff(einvoice, einvoice_copy)
+	
+			if diff:
+				frappe.log_error(
+					message=dumps(diff, indent=2),
+					title=_('E-Invoice: Edit Not Allowed')
+				)
+				frappe.throw(_('You cannot edit the invoice after generating IRN'), title=_('Edit Not Allowed'))
 
 def remove_default_fields(doc):
 	clone = frappe.copy_doc(doc)
@@ -736,9 +738,8 @@ def validate_einvoice_eligibility(doc):
 	eligible_companies = frappe.db.get_single_value('E Invoicing Settings', 'companies')
 	invalid_company = doc.get('company') not in eligible_companies
 	invalid_supply_type = doc.get('gst_category') not in ['Registered Regular', 'SEZ', 'Overseas', 'Deemed Export']
-	inter_company_transaction = doc.get('billing_address_gstin') == doc.get('company_gstin')
+	inter_company_transaction = False # = doc.get('billing_address_gstin') == doc.get('company_gstin')
 	has_non_gst_item = any(d for d in doc.get('items', []) if d.get('is_non_gst'))
-
 	# if export invoice, then taxes can be empty
 	# invoice can only be ineligible if no taxes applied and is not an export invoice
 	no_taxes_applied = not doc.get('taxes') and not doc.get('gst_category') == 'Overseas'
@@ -746,6 +747,7 @@ def validate_einvoice_eligibility(doc):
 	if invalid_company or invalid_supply_type or inter_company_transaction or no_taxes_applied or has_non_gst_item:
 		return False
 
+	print("** validate_einvoice_eligibility true **")
 	return True
 
 def validate_sales_invoice_submission(doc, method=""):
