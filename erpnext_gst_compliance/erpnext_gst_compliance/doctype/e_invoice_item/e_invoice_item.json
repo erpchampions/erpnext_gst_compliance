@@ -10,7 +10,7 @@
   "item_name",
   "is_service_item",
   "column_break_4",
-  "hsn_code",
+  "gst_hsn_code",
   "section_break_6",
   "quantity",
   "unit",
@@ -55,7 +55,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "hsn_code",
+   "fieldname": "gst_hsn_code",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "HSN Code"

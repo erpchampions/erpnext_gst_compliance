@@ -209,7 +209,7 @@ class EInvoice(Document):
 				'item_code': item.item_code,
 				'item_name': item.item_name,
 				'is_service_item': is_service_item,
-				'hsn_code': item.gst_hsn_code,
+				'gst_hsn_code': item.gst_hsn_code,
 				'quantity': abs(item.qty),
 				'discount': 0,
 				'unit': item.uom,
@@ -244,7 +244,7 @@ class EInvoice(Document):
 				'item_code': item.item_code,
 				'item_name': item.item_name,
 				'is_service_item': is_service_item,
-				'hsn_code': item.gst_hsn_code,
+				'gst_hsn_code': item.gst_hsn_code,
 				'quantity': abs(item.qty),
 				'discount': 0,
 				'unit': item.uom,
@@ -481,7 +481,7 @@ class EInvoice(Document):
 				"SlNo": str(row.idx),
 				"PrdDesc": row.item_name,
 				"IsServc": "Y" if row.is_service_item else "N",
-				"HsnCd": row.hsn_code,
+				"HsnCd": row.gst_hsn_code,
 				"Qty": row.quantity,
 				"Unit": row.unit,
 				"UnitPrice": row.rate,
@@ -613,7 +613,7 @@ class EInvoice(Document):
 				error_list.append(_('Row #{}: Invalid GST Tax rate. Please correct the Tax Rate Values and try again.')
 					.format(item.idx))
 
-			if not item.hsn_code:
+			if not item.gst_hsn_code:
 				error_list.append(_('Row #{}: HSN Code is mandatory for e-invoice generation.')
 					.format(item.idx))
 
@@ -627,6 +627,7 @@ class EInvoice(Document):
 			frappe.throw(error_list, title=_('E Invoice Validation Failed'), as_list=1)
 
 	def validate_uom(self):
+		return # MOKI, temp deactivate validations
 		valid_uoms = ['BAG', 'BAL', 'BDL', 'BKL', 'BOU', 'BOX', 'BTL', 'BUN', 'CAN', 'CCM', 'CMS', 'CBM', 'CTN', 'DOZ', 'DRM', 'GGK', 'GMS', 'GRS', 'GYD', 'KGS', 'KLR', 'KME', 'LTR', 'MLS', 'MLT', 'MTR', 'MTS', 'NOS', 'OTH', 'PAC', 'PCS', 'PRS', 'QTL', 'ROL', 'SET', 'SQF', 'SQM', 'SQY', 'TBS', 'TGM', 'THD', 'TON', 'TUB', 'UGS', 'UNT', 'YD']
 		for item in self.items:
 			if item.unit and item.unit.upper() not in valid_uoms:

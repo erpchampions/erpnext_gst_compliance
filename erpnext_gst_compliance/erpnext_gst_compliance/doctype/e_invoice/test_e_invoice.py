@@ -66,13 +66,13 @@ class TestEInvoice(unittest.TestCase):
 
 	def test_item_validations(self):
 		item = self.e_invoice.items[0]
-		self.assertEqual(item.hsn_code, '990002')
+		self.assertEqual(item.gst_hsn_code, '990002')
 		# if hsn_code starts with 99 then its a service item
 		self.assertTrue(item.is_service_item)
 		self.assertEqual(item.quantity, 2000)
 
 		item = self.e_invoice.items[1]
-		self.assertEqual(item.hsn_code, '890002')
+		self.assertEqual(item.gst_hsn_code, '890002')
 		# if hsn_code doesn't starts with 99 then not a service item
 		self.assertFalse(item.is_service_item)
 		self.assertEqual(item.quantity, 420)
