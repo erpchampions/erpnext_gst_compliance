@@ -1,0 +1,72 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-07-29 06:39:08.871199",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "tax_category_code",
+  "net_amount",
+  "tax_rate",
+  "tax_amount",
+  "gross_amount",
+  "excise_unit",
+  "excise_currency",
+  "tax_rate_name"
+ ],
+ "fields": [
+  {
+   "fieldname": "tax_category_code",
+   "fieldtype": "Data",
+   "label": "Tax Category Code"
+  },
+  {
+   "fieldname": "net_amount",
+   "fieldtype": "Currency",
+   "label": "Net Amount"
+  },
+  {
+   "fieldname": "tax_rate",
+   "fieldtype": "Currency",
+   "label": "Tax Rate"
+  },
+  {
+   "fieldname": "tax_amount",
+   "fieldtype": "Currency",
+   "label": "Tax Amount"
+  },
+  {
+   "fieldname": "gross_amount",
+   "fieldtype": "Currency",
+   "label": "Gross Amount"
+  },
+  {
+   "fieldname": "excise_unit",
+   "fieldtype": "Data",
+   "label": "Excise Unit"
+  },
+  {
+   "fieldname": "excise_currency",
+   "fieldtype": "Data",
+   "label": "Excise Currency"
+  },
+  {
+   "fieldname": "tax_rate_name",
+   "fieldtype": "Data",
+   "label": "Tax Rate Name"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2023-07-29 06:39:08.871199",
+ "modified_by": "Administrator",
+ "module": "ERPNext GST Compliance",
+ "name": "E Invoice Tax Items",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
