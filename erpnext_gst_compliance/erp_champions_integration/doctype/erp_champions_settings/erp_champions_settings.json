@@ -1,6 +1,7 @@
 {
  "actions": [],
- "creation": "2021-06-21 16:35:18.701406",
+ "creation": "2023-07-27 13:50:03.395167",
+ "default_view": "List",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
@@ -14,7 +15,8 @@
   "client_id",
   "column_break_8",
   "client_secret",
-  "device_no"
+  "tab_break_fxwm2",
+  "gst_accounts"
  ],
  "fields": [
   {
@@ -32,19 +34,19 @@
    "mandatory_depends_on": "enabled"
   },
   {
-   "fieldname": "auth_token",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "Authorization Token",
-   "read_only": 1
-  },
-  {
    "depends_on": "enabled",
    "fieldname": "credentials",
    "fieldtype": "Table",
    "label": "Credentials",
    "mandatory_depends_on": "enabled",
-   "options": "Adequare Credential"
+   "options": "ERP Champions Credential"
+  },
+  {
+   "fieldname": "auth_token",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Authorization Token",
+   "read_only": 1
   },
   {
    "fieldname": "token_expiry",
@@ -65,27 +67,33 @@
    "label": "Client ID"
   },
   {
+   "fieldname": "column_break_8",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "client_secret",
    "fieldtype": "Password",
    "label": "Client Secret"
   },
   {
-   "fieldname": "column_break_8",
-   "fieldtype": "Column Break"
+   "fieldname": "tab_break_fxwm2",
+   "fieldtype": "Tab Break",
+   "label": "GST Setttings"
   },
   {
-   "fieldname": "device_no",
-   "fieldtype": "Data",
-   "label": "Device No"
+   "fieldname": "gst_accounts",
+   "fieldtype": "Table",
+   "label": "GST Accounts",
+   "options": "ERP Champions GST Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-07-27 14:49:40.448017",
+ "modified": "2023-07-27 21:41:52.793075",
  "modified_by": "Administrator",
- "module": "Adequare Integration",
- "name": "Adequare Settings",
+ "module": "Erp Champions Integration",
+ "name": "ERP Champions Settings",
  "owner": "Administrator",
  "permissions": [
   {
