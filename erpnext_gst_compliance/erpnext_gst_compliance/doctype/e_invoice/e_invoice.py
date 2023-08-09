@@ -491,19 +491,26 @@ class EInvoice(Document):
 			self.previous_document_date = format_date(original_invoice_date, 'dd/mm/yyyy')
 
 	def get_einvoice_json(self):
+		# Update to have URA fields
 		einvoice_json = {
-			"Version": str(self.version),
-			"TranDtls": {
-				"TaxSch": self.tax_scheme,
-				"SupTyp": self.supply_type,
-				"RegRev": "Y" if self.reverse_charge else "N",
-				"EcmGstin": self.ecommerce_gstin,
-				"IgstOnIntra": "Y" if self.igst_on_intra else "N"
+			"payWay": [
+				{
+					"paymentMode": "101",
+					"paymentAmount": "240000.00",
+					"orderNumber": "a"
+				}
+			],
+			"extend": {
 			},
-			"DocDtls": {
-				"Typ": self.invoice_type,
-				"No": self.invoice,
-				"Dt": format_date(self.invoice_date, 'dd/mm/yyyy')
+			"importServicesSeller": {
+			},
+			"airlineGoodsDetails": [
+				{
+				}
+			],
+			"edcDetails": {
+			},
+			"agentEntity": {
 			}
 		}
 
