@@ -122,6 +122,19 @@ class EInvoice(Document):
 		self.remarks = "Test Askcc invoice"
 		self.qrCode = ""
 
+		"""
+		ERP Champions: Mimic the doctype structure as customized for EFRIS
+		set_basic_information()
+		set_seller_details()
+		set_buyer_details()
+		set_buyer_extend() #skip for phase 1
+		set_item_details()
+		set_tax_details()
+		set_summary_details()
+
+		"""
+
+
 	def set_sales_invoice(self):
 		self.sales_invoice = frappe.get_doc('Sales Invoice', self.invoice)
 
