@@ -116,7 +116,11 @@ class EInvoice(Document):
   
 	def set_summary_details(self):
 		self.netAmount = self.sales_invoice.net_total
-		self.taxAmount = self.taxes[0].as_dict().tax_amount
+		if len(self.taxes) > 0:
+			self.taxAmount = self.taxes[0].as_dict().tax_amount
+		else:
+			self.taxAmount = 0
+		
 		self.grossAmount = self.sales_invoice.grand_total
 		self.itemCount = len(self.sales_invoice.items)
 		self.modeCode = 1 # Hardcode for now
