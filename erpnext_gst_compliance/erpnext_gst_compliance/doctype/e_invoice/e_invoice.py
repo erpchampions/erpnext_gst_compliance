@@ -75,6 +75,7 @@ class EInvoice(Document):
 		self.set_seller_details()
 		self.set_buyer_details()
 		self.set_item_details()
+		self.set_value_details()
   
 		# Additional methods
 		self.set_basic_information()
