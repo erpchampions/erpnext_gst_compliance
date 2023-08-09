@@ -514,193 +514,158 @@ class EInvoice(Document):
 			}
 		}
 
-		einvoice_json.update(self.get_address_json())
-		einvoice_json.update(self.get_item_list_json())
-		einvoice_json.update(self.get_invoice_value_json())
-		einvoice_json.update(self.get_payment_details_json())
-		einvoice_json.update(self.get_return_details_json())
-		einvoice_json.update(self.get_export_details_json())
-		einvoice_json.update(self.get_ewaybill_details_json())
+
+		einvoice_json.update(self.get_seller_details_json())
+		einvoice_json.update(self.get_basic_information_json())
+		einvoice_json.update(self.get_buyer_details_json())
+		einvoice_json.update(self.get_buyer_extend())
+		einvoice_json.update(self.get_good_details())
+		einvoice_json.update(self.get_tax_details())
+		einvoice_json.update(self.get_summary())
 
 		return einvoice_json
 
-	def get_address_json(self):
-		addresses = {}
-		seller_address = {
-			"Gstin": self.seller_gstin,
-			"LglNm": self.seller_legal_name,
-			"TrdNm": self.seller_trade_name,
-			"Addr1": self.seller_address_line_1,
-			"Loc": self.seller_location,
-			"Pin": cint(self.seller_pincode),
-			"Stcd": self.seller_state_code,
-			"Ph": self.seller_phone,
-			"Em": self.seller_email
-		}
-		if self.seller_address_line_2:
-			seller_address.update({"Addr2": self.seller_address_line_2})
-		addresses.update({ "SellerDtls": seller_address })
-
-		buyer_address = {
-			"Gstin": self.buyer_gstin,
-			"LglNm": self.buyer_legal_name,
-			"TrdNm": self.buyer_trade_name,
-			"Pos": self.buyer_place_of_supply,
-			"Addr1": self.buyer_address_line_1,
-			"Loc": self.buyer_location,
-			"Pin": cint(self.buyer_pincode),
-			"Stcd": self.buyer_state_code,
-			"Ph": self.buyer_phone,
-			"Em": self.buyer_email
-		}
-		if self.buyer_address_line_2:
-			buyer_address.update({"Addr2": self.buyer_address_line_2})
-		addresses.update({ "BuyerDtls": buyer_address })
-
-		if self.dispatch_legal_name:
-			dispatch_address = {
-				"Nm": self.dispatch_legal_name,
-				"Addr1": self.dispatch_address_line_1,
-				"Loc": self.dispatch_location,
-				"Pin": cint(self.dispatch_pincode),
-				"Stcd": self.dispatch_state_code
+	def get_seller_details_json(self):
+		return {
+			"sellerDetails": {
+				"tin": self.seller_gstin,
+				"ninBrn": "",
+				"legalName": self.seller_legal_name,
+				"businessName": self.seller_trade_name,
+				"address": self.seller_location,
+				"mobilePhone": "15501234567",
+				"linePhone": "",
+				"emailAddress": self.seller_email,
+				"placeOfBusiness": self.seller_address_line_1,
+				"referenceNo": self.seller_reference_no,
+				"branchId": "",
+				"isCheckReferenceNo": "0",
+				"branchName": "Test",
+				"branchCode": ""
 			}
-			if self.dispatch_address_line_2:
-				dispatch_address.update({"Addr2": self.dispatch_address_line_2})
-			addresses.update({ "DispDtls": dispatch_address })
+		}
 
-		if self.shipping_legal_name:
-			shipping_address = {
-				"Gstin": self.shipping_gstin,
-				"LglNm": self.shipping_legal_name,
-				"TrdNm": self.shipping_trade_name,
-				"Pos": self.shipping_place_of_supply,
-				"Addr1": self.shipping_address_line_1,
-				"Loc": self.shipping_location,
-				"Pin": cint(self.shipping_pincode),
-				"Stcd": self.shipping_state_code
+	def get_basic_information_json(self):
+		return {
+			"basicInformation": {
+				"invoiceNo": "",
+				"antifakeCode": "",
+				"deviceNo": self.deviceNo,
+				"issuedDate": str(self.issuedDate),
+				"operator": self.operator,
+				"currency": self.currency,
+				"oriInvoiceId": "",
+				"invoiceType": str(self.invoiceType),
+				"invoiceKind": str(self.invoiceKind),
+				"dataSource": str(self.dataSource),
+				"invoiceIndustryCode": str(self.invoiceIndustryCode),
+				"isBatch": str(self.isBatch)
 			}
-			if self.shipping_address_line_2:
-				shipping_address.update({"Addr2": self.shipping_address_line_2})
-			addresses.update({ "ShipDtls": shipping_address })
+		}
+	
+	def get_buyer_details_json(self):
+		return {
+			"buyerDetails": {
+				"buyerTin": self.buyer_gstin,
+				"buyerNinBrn": self.buyerNinBrn,
+				"buyerPassportNum": self.buyerPassportNum,
+				"buyerLegalName": self.buyer_legal_name,
+				"buyerBusinessName": self.buyer_legal_name,
+				"buyerAddress": self.buyer_location,
+				"buyerEmail": self.buyer_email,
+				"buyerMobilePhone": self.buyerLinePhone,
+				"buyerLinePhone": "",
+				"buyerPlaceOfBusi": self.buyer_address_line_1,
+				"buyerType": "0",
+				"buyerCitizenship": self.buyerCitizenship,
+				"buyerSector": self.buyerSector,
+				"buyerReferenceNo": self.buyerReferenceNo,
+				"nonResidentFlag": self.nonResidentFlag
+			}
+		}
 
-		return addresses
+	def get_buyer_extend(self):
+		return {
+			"buyerExtend": {
+				"propertyType": "",
+				"district": "",
+				"municipalityCounty": "",
+				"divisionSubcounty": "",
+				"town": "",
+				"cellVillage": "",
+				"effectiveRegistrationDate": "",
+				"meterStatus": ""
+			}
+		}
 
-	def get_item_list_json(self):
+	def get_good_details(self):
 		item_list = []
 		for row in self.items:
 			item = {
-				"SlNo": str(row.idx),
-				"PrdDesc": row.item_name,
-				"IsServc": "Y" if row.is_service_item else "N",
-				"HsnCd": row.gst_hsn_code,
-				"Qty": row.quantity,
-				"Unit": row.unit,
-				"UnitPrice": row.rate,
-				"TotAmt": row.amount,
-				"Discount": row.discount,
-				"AssAmt": row.taxable_value,
-				"GstRt": row.gst_rate,
-				"IgstAmt": row.igst_amount,
-				"CgstAmt": row.cgst_amount,
-				"SgstAmt": row.sgst_amount,
-				"CesRt": row.cess_rate,
-				"CesAmt": row.cess_amount,
-				"CesNonAdvlAmt": row.cess_nadv_amount,
-				"OthChrg": row.other_charges,
-				"TotItemVal": row.total_item_value
+				"item": row.item_name,
+				"itemCode": row.item_code,
+				"qty": str(row.quantity),
+				"unitOfMeasure": "101",
+				"unitPrice": str(row.rate),
+				"total": str(row.amount),
+				"taxRate": "0.18", # Get from Uganda tax template
+				"tax": str(row.taxable_value),
+				"discountTotal": "",
+				"discountTaxRate": "0.00",
+				"orderNumber": 0,
+				"discountFlag": "2",
+				"deemedFlag": "2",
+				"exciseFlag": "2",
+				"categoryId": "",
+				"categoryName": "",
+				"goodsCategoryId": "50151513",
+				"goodsCategoryName": "Services",
+				"exciseRate": "",
+				"exciseRule": "",
+				"exciseTax": "",
+				"pack": "",
+				"stick": "",
+				"exciseUnit": "101",
+				"exciseCurrency": "UGX",
+				"exciseRateName": "",
+				"vatApplicableFlag": "1",
+				"deemedExemptCode": "",
+				"vatProjectId": "",
+				"vatProjectName": ""
 			}
 			item_list.append(item)
 		return {
-			"ItemList": item_list
+			"goodsDetails": item_list
 		}
-
-	def get_invoice_value_json(self):
+		
+	def get_tax_details(self):
+     
 		return {
-			"ValDtls": {
-				"AssVal": self.ass_value,
-				"CgstVal": self.cgst_value,
-				"SgstVal": self.sgst_value,
-				"IgstVal": self.igst_value,
-				"CesVal": self.cess_value,
-				"StCesVal": self.state_cess_value,
-				"Discount": self.invoice_discount,
-				"OthChrg": self.other_charges,
-				"RndOffAmt": self.round_off_amount,
-				"TotInvVal": self.base_invoice_value,
-				"TotInvValFc": self.invoice_value
+			"taxDetails": {
+				"taxCategoryCode": "01",
+				"netAmount": str(self.netAmount),
+				"taxRate": "0.18",
+				"taxAmount": str(self.taxAmount),
+				"grossAmount": str(self.grossAmount),
+				"exciseUnit": "101",
+				"exciseCurrency": "UGX",
+				"taxRateName": "123"
 			}
 		}
 
-	def get_payment_details_json(self):
-		if not self.payee_name:
-			return {}
-
+	def get_summary(self):
 		return {
-			"PayDtls": {
-				"Nm": self.payee_name,
-				"AccDet": self.account_detail,
-				"Mode": self.mode,
-				"FinInsBr": self.branch_or_ifsc,
-				"PayTerm": self.payment_term,
-				"CrDay": self.credit_days,
-				"PaidAmt": self.paid_amount,
-				"PaymtDue": self.payment_due
-			},
-		}
-
-	def get_return_details_json(self):
-		if not self.previous_document_no:
-			return {}
-
-		return {
-			"RefDtls": {
-				"PrecDocDtls": [
-					{
-						"InvNo": self.previous_document_no,
-						"InvDt": format_date(self.previous_document_date, 'dd/mm/yyyy')
-					}
-				]
+			"summary": {
+				"netAmount": str(self.netAmount),
+				"taxAmount": str(self.taxAmount),
+				"grossAmount": str(self.grossAmount),
+				"itemCount": str(self.itemCount),
+				"modeCode": str(self.modeCode),
+				"remarks": "Test Askcc invoice.",
+				"qrCode": ""
 			}
-		}
+       }
 
-	def get_export_details_json(self):
-		if not self.export_bill_no:
-			return {}
-
-		return {
-			"ExpDtls": {
-				"ShipBNo": self.export_bill_no,
-				"ShipBDt": format_date(self.export_bill_date, 'dd/mm/yyyy'),
-				"Port": self.port_code,
-				"RefClm": "Y" if self.claiming_refund else "N",
-				"ForCur": self.currency_code,
-				"CntCode": self.country_code
-			}
-		}
-
-	def get_ewaybill_details_json(self):
-		if not self.sales_invoice.transporter:
-			return {}
-
-		mode_of_transport = {'': '', 'Road': '1', 'Air': '2', 'Rail': '3', 'Ship': '4'}
-		vehicle_type = {'': None, 'Regular': 'R', 'Over Dimensional Cargo (ODC)': 'O'}
-
-		mode_of_transport = mode_of_transport[self.mode_of_transport]
-		vehicle_type = vehicle_type[self.vehicle_type]
-
-		return {
-			"EwbDtls": {
-				"TransId": self.transporter_gstin,
-				"TransName": self.transporter_name,
-				"Distance": cint(self.distance) or 0,
-				"TransDocNo": self.transport_document_no,
-				"TransDocDt": format_date(self.transport_document_date, 'dd/mm/yyyy'),
-				"VehNo": self.vehicle_no,
-				"VehType": vehicle_type,
-				"TransMode": mode_of_transport
-			}
-		}
 
 	def sync_with_sales_invoice(self):
 		# to fetch details from 'fetch_from' fields
