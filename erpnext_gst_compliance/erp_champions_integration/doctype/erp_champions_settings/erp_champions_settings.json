@@ -15,6 +15,7 @@
   "client_id",
   "column_break_8",
   "client_secret",
+  "device_no",
   "tab_break_fxwm2",
   "gst_accounts"
  ],
@@ -85,12 +86,18 @@
    "fieldtype": "Table",
    "label": "GST Accounts",
    "options": "ERP Champions GST Account"
+  },
+  {
+   "fieldname": "device_no",
+   "fieldtype": "Data",
+   "label": "Device No",
+   "length": 20
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-07-27 21:41:52.793075",
+ "modified": "2023-08-08 18:39:08.932988",
  "modified_by": "Administrator",
  "module": "Erp Champions Integration",
  "name": "ERP Champions Settings",
