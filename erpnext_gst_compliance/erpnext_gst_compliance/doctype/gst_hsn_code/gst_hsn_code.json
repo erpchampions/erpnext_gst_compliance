@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "field:hsn_code",
  "creation": "2023-07-02 22:04:50.189208",
  "default_view": "List",
  "doctype": "DocType",
@@ -69,10 +70,11 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-07-02 22:47:02.014948",
+ "modified": "2023-08-02 16:13:35.904144",
  "modified_by": "Administrator",
  "module": "ERPNext GST Compliance",
  "name": "GST HSN Code",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
@@ -89,8 +91,10 @@
   }
  ],
  "quick_entry": 1,
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
+ "title_field": "hsn_code",
  "track_changes": 1
 }
