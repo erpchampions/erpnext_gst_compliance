@@ -240,7 +240,7 @@ class EInvoice(Document):
 		# self.buyerAddress = ""
 		# self.buyerEmail = buyer_address.email_id
 		# self.buyerMobilePhone = ""
-		self.buyerLinePhone = self.sales_invoice.buyer_phone
+		self.buyerLinePhone = buyer_address.phone # Picked from customer phone field
 		# self.buyerPlaceOfBusi = buyer_address.address_line1
 		# self.buyerType = 0 # Same as supply type
 		self.buyerCitizenship = "" # Hardcode for now
