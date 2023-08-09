@@ -12,6 +12,7 @@ from frappe.model import default_fields
 from frappe.model.document import Document
 from frappe.utils.data import cint, format_date, getdate, flt
 from frappe.core.doctype.version.version import get_diff
+import random
 
 #from erpnext.regional.india.utils import get_gst_accounts
 GST_ACCOUNT_FIELDS = (
@@ -57,31 +58,86 @@ class EInvoice(Document):
 
 	@frappe.whitelist()
 	def fetch_invoice_details(self):
+     
+		# ERP Champions: Mimic the doctype structure as customized for EFRIS
+		# set_basic_information()
+		# set_seller_details()
+		# set_buyer_details()
+		# set_buyer_extend() #skip for phase 1
+		# set_item_details()
+		# set_tax_details()
+		# set_summary_details()
+  
 		self.set_sales_invoice()
 		self.set_invoice_type()
 		self.set_supply_type()
+  
 		self.set_seller_details()
 		self.set_buyer_details()
-		self.set_shipping_details()
-		self.set_dispatch_details()
 		self.set_item_details()
-		self.set_value_details()
-		self.set_payment_details()
-		self.set_return_doc_reference()
+  
+		# Additional methods
+		self.set_basic_information()
+		self.set_buyer_extend()
+		self.set_summary_details()
+  
+	def set_basic_information(self):
+     
+		service_provider = frappe.db.get_single_value('E Invoicing Settings', 'service_provider')
+		if not service_provider:
+			return False
+
+		# URA set fields
+		self.invoiceNo = ""
+		self.antifakeCode = ""
+  
+		self.deviceNo = frappe.db.get_single_value(service_provider, 'device_no')
+		self.issuedDate = self.sales_invoice.creation
+		self.operator = self.sales_invoice.modified_by
+		self.currency = self.sales_invoice.currency
+		self.oriInvoiceId = ""
+		self.invoiceType = self.set_invoice_type()
+		self.invoiceKind = 1 # Hardcode for now
+		self.dataSource = 101 # Hardcode for now
+		self.invoiceIndustryCode = 101 # Harccode for now
+		self.isBatch = 0 # Hardcode for now
+  
+	def set_buyer_extend(self):
+		# Leave fields blank for phase 1
+		self.propertyType = ""
+		self.district = ""
+		self.municipalityCounty = ""
+		self.divisionSubcounty = ""
+		self.town = ""
+		self.cellVillage = ""
+		self.effectiveRegistrationDate = ""
+		self.meterStatus = ""
+  
+	def set_summary_details(self):
+		self.netAmount = self.sales_invoice.net_total
+		self.taxAmount = self.taxes[0].as_dict().tax_amount
+		self.grossAmount = self.sales_invoice.grand_total
+		self.itemCount = len(self.sales_invoice.items)
+		self.modeCode = 1 # Hardcode for now
+		self.remarks = "Test Askcc invoice"
+		self.qrCode = ""
 
 	def set_sales_invoice(self):
 		self.sales_invoice = frappe.get_doc('Sales Invoice', self.invoice)
 
 	def set_invoice_type(self):
-		self.invoice_type = 'CRN' if self.sales_invoice.is_return else 'INV'
+		# 1:Invoice/Receipt 
+		# 5:Credit Memo/rebate 
+		# 4:Debit Note
+		return 1 # Hardcode to Invoice/receipt for now
 
 	def set_supply_type(self):
 		gst_category = self.sales_invoice.gst_category
-
-		if gst_category == 'Registered Regular': self.supply_type = 'B2B'
-		elif gst_category == 'SEZ': self.supply_type = 'SEZWOP'
-		elif gst_category == 'Overseas': self.supply_type = 'EXPWOP'
-		elif gst_category == 'Deemed Export': self.supply_type = 'DEXP'
+		# Modified to URA standards
+		if gst_category == 'B2B': self.supply_type = 0
+		elif gst_category == 'B2C': self.supply_type = 1
+		elif gst_category == 'Foreigner': self.supply_type = 2
+		elif gst_category == 'B2G': self.supply_type = 3
 
 	def set_seller_details(self):
 		company_address = self.sales_invoice.company_address
@@ -94,12 +150,16 @@ class EInvoice(Document):
 			'address_line1': 'Address Lines',
 			'city': 'City',
 			'pincode': 'Pincode',
-			'gst_state_number': 'State Code'
+			'gst_state_number': 'State Code',
+			'email_id': 'Email Address'
 		}
 		for field, field_label in mandatory_field_label_map.items():
 			if not seller_address[field]:
 				frappe.throw(_('Company address {} must have {} set to be able to generate e-invoice.')
 					.format(company_address, field_label))
+    
+		# if not self.sales_invoice.seller_reference_no:
+		# 	frappe.throw(_('Reference No must be set'))
 
 		self.seller_legal_name = self.company
 		self.seller_gstin = seller_address.gstin
@@ -108,6 +168,11 @@ class EInvoice(Document):
 		self.seller_address_line_1 = seller_address.address_line1
 		self.seller_address_line_2 = seller_address.address_line2
 		self.seller_state_code = seller_address.gst_state_number
+		# Added fields
+		self.seller_email = seller_address.email_id
+		# Use invoice name instead
+		self.seller_reference_no = self.sales_invoice.name
+		self.seller_trade_name = self.company
 
 	def set_buyer_details(self):
 		customer_address = self.sales_invoice.customer_address
@@ -121,7 +186,8 @@ class EInvoice(Document):
 			'address_line1': 'Address Lines',
 			'city': 'City',
 			'pincode': 'Pincode',
-			'gst_state_number': 'State Code'
+			'gst_state_number': 'State Code',
+			'email_id': 'Email Address',
 		}
 		for field, field_label in mandatory_field_label_map.items():
 			if field == 'gstin':
@@ -142,6 +208,26 @@ class EInvoice(Document):
 		self.buyer_address_line_2 = buyer_address.address_line2
 		self.buyer_state_code = buyer_address.gst_state_number
 		self.buyer_place_of_supply = buyer_address.gst_state_number
+		#Added fields
+		self.buyer_email = buyer_address.email_id
+		self.supply_type = 0 # TODO: add to sales invoice
+  
+		# self.buyerTin = buyer_address.gstin
+		buyer_nin = frappe.get_list("Customer", fields="*", filters={'name':"Bakunga Bronson"})[0].nin
+		self.buyerNinBrn = "" if buyer_nin is None else  buyer_nin
+		self.buyerPassportNum = self.sales_invoice.buyer_pass_num
+		# self.buyerLegalName = ""
+		# self.buyerBusinessName = ""
+		# self.buyerAddress = ""
+		# self.buyerEmail = buyer_address.email_id
+		# self.buyerMobilePhone = ""
+		self.buyerLinePhone = self.sales_invoice.buyer_phone
+		# self.buyerPlaceOfBusi = buyer_address.address_line1
+		# self.buyerType = 0 # Same as supply type
+		self.buyerCitizenship = "" # Hardcode for now
+		self.buyerSector = "" # Hardcode for now
+		self.buyerReferenceNo = "" # Hardcode for now
+		self.nonResidentFlag = 0 # Hardcode for now
 
 		if is_export:
 			self.buyer_gstin = 'URP'
@@ -212,7 +298,7 @@ class EInvoice(Document):
 				'gst_hsn_code': item.gst_hsn_code,
 				'quantity': abs(item.qty),
 				'discount': 0,
-				'unit': item.uom,
+				'unit': 101, # Hardcode value for now
 				'rate': rate,
 				'amount': abs(item.taxable_value),
 				'taxable_value': abs(item.taxable_value)
@@ -727,8 +813,14 @@ def validate_einvoice_eligibility(doc):
 	service_provider = frappe.db.get_single_value('E Invoicing Settings', 'service_provider')
 	if not service_provider:
 		return False
+
+	# if service_provider ==  "ERP Champions Settings":
+	# 	einvoicing_enabled = frappe.get_cached_doc(service_provider)
+	# else:
+	# 	einvoicing_enabled = frappe.get_cached_doc("GST Settings", "GST Settings")
 	
 	einvoicing_enabled = cint(frappe.db.get_single_value(service_provider, 'enabled'))
+ 
 	if not einvoicing_enabled:
 		return False
 
@@ -738,7 +830,8 @@ def validate_einvoice_eligibility(doc):
 
 	eligible_companies = frappe.db.get_single_value('E Invoicing Settings', 'companies')
 	invalid_company = doc.get('company') not in eligible_companies
-	invalid_supply_type = doc.get('gst_category') not in ['Registered Regular', 'SEZ', 'Overseas', 'Deemed Export']
+	# Modified URA supply types
+	invalid_supply_type = False # doc.get('gst_category') not in ["0", "1", "2", "3"] # 0: B2B 1: B2C 2: Foreigner 3: B2G
 	inter_company_transaction = False # = doc.get('billing_address_gstin') == doc.get('company_gstin')
 	has_non_gst_item = any(d for d in doc.get('items', []) if d.get('is_non_gst'))
 	# if export invoice, then taxes can be empty
@@ -746,9 +839,10 @@ def validate_einvoice_eligibility(doc):
 	no_taxes_applied = not doc.get('taxes') and not doc.get('gst_category') == 'Overseas'
 
 	if invalid_company or invalid_supply_type or inter_company_transaction or no_taxes_applied or has_non_gst_item:
+		frappe.log_error(f'{invalid_company}, {invalid_supply_type}, {inter_company_transaction}, {no_taxes_applied}, {has_non_gst_item}')
 		return False
 
-	print("** validate_einvoice_eligibility true **")
+	frappe.log_error("** validate_einvoice_eligibility true **")
 	return True
 
 def validate_sales_invoice_submission(doc, method=""):
@@ -807,8 +901,16 @@ def get_gst_accounts(
         filters["account_type"] = "Reverse Charge"
     elif only_non_reverse_charge:
         filters["account_type"] = ("!=", "Reverse Charge")
-
-    settings = frappe.get_cached_doc("GST Settings", "GST Settings")
+        
+    service_provider = frappe.db.get_single_value('E Invoicing Settings', 'service_provider')
+ 
+    if not service_provider:
+        return False
+    if service_provider == "ERP Champions Settings":
+        settings = frappe.get_cached_doc(service_provider)
+    else:
+        settings = frappe.get_cached_doc("GST Settings", "GST Settings")
+        
     gst_accounts = settings.get("gst_accounts", filters)
     result = frappe._dict()
 
