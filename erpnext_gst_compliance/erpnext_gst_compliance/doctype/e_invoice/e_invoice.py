@@ -318,8 +318,8 @@ class EInvoice(Document):
 				'quantity': abs(item.qty),
 				'discount': 0,
 				'unit': 101, # Hardcode value for now
-				'rate': rate,
-				'amount': abs(item.taxable_value),
+				'rate': item.rate,
+				'amount': item.amount,
 				'taxable_value': abs(item.taxable_value)
 			})
 
