@@ -12,6 +12,7 @@ from frappe.model import default_fields
 from frappe.model.document import Document
 from frappe.utils.data import cint, format_date, getdate, flt
 from frappe.core.doctype.version.version import get_diff
+import random
 
 #from erpnext.regional.india.utils import get_gst_accounts
 GST_ACCOUNT_FIELDS = (
@@ -57,17 +58,74 @@ class EInvoice(Document):
 
 	@frappe.whitelist()
 	def fetch_invoice_details(self):
+     
+		# ERP Champions: Mimic the doctype structure as customized for EFRIS
+		# set_basic_information()
+		# set_seller_details()
+		# set_buyer_details()
+		# set_buyer_extend() #skip for phase 1
+		# set_item_details()
+		# set_tax_details()
+		# set_summary_details()
+  
 		self.set_sales_invoice()
 		self.set_invoice_type()
 		self.set_supply_type()
+  
 		self.set_seller_details()
 		self.set_buyer_details()
-		self.set_shipping_details()
-		self.set_dispatch_details()
 		self.set_item_details()
 		self.set_value_details()
-		self.set_payment_details()
-		self.set_return_doc_reference()
+  
+		# Additional methods
+		self.set_basic_information()
+		self.set_buyer_extend()
+		self.set_summary_details()
+  
+	def set_basic_information(self):
+     
+		service_provider = frappe.db.get_single_value('E Invoicing Settings', 'service_provider')
+		if not service_provider:
+			return False
+
+		# URA set fields
+		self.invoiceNo = ""
+		self.antifakeCode = ""
+  
+		self.deviceNo = frappe.db.get_single_value(service_provider, 'device_no')
+		self.issuedDate = self.sales_invoice.creation
+		self.operator = self.sales_invoice.modified_by
+		self.currency = self.sales_invoice.currency
+		self.oriInvoiceId = ""
+		self.invoiceType = self.set_invoice_type()
+		self.invoiceKind = 1 # Hardcode for now
+		self.dataSource = 101 # Hardcode for now
+		self.invoiceIndustryCode = 101 # Harccode for now
+		self.isBatch = 0 # Hardcode for now
+  
+	def set_buyer_extend(self):
+		# Leave fields blank for phase 1
+		self.propertyType = ""
+		self.district = ""
+		self.municipalityCounty = ""
+		self.divisionSubcounty = ""
+		self.town = ""
+		self.cellVillage = ""
+		self.effectiveRegistrationDate = ""
+		self.meterStatus = ""
+  
+	def set_summary_details(self):
+		self.netAmount = self.sales_invoice.net_total
+		if len(self.taxes) > 0:
+			self.taxAmount = self.taxes[0].as_dict().tax_amount
+		else:
+			self.taxAmount = 0
+		
+		self.grossAmount = self.sales_invoice.grand_total
+		self.itemCount = len(self.sales_invoice.items)
+		self.modeCode = 1 # Hardcode for now
+		self.remarks = "Test Askcc invoice"
+		self.qrCode = ""
 
 		"""
 		ERP Champions: Mimic the doctype structure as customized for EFRIS
@@ -86,15 +144,18 @@ class EInvoice(Document):
 		self.sales_invoice = frappe.get_doc('Sales Invoice', self.invoice)
 
 	def set_invoice_type(self):
-		self.invoice_type = 'CRN' if self.sales_invoice.is_return else 'INV'
+		# 1:Invoice/Receipt 
+		# 5:Credit Memo/rebate 
+		# 4:Debit Note
+		return 1 # Hardcode to Invoice/receipt for now
 
 	def set_supply_type(self):
 		gst_category = self.sales_invoice.gst_category
-
-		if gst_category == 'Registered Regular': self.supply_type = 'B2B'
-		elif gst_category == 'SEZ': self.supply_type = 'SEZWOP'
-		elif gst_category == 'Overseas': self.supply_type = 'EXPWOP'
-		elif gst_category == 'Deemed Export': self.supply_type = 'DEXP'
+		# Modified to URA standards
+		if gst_category == 'B2B': self.supply_type = 0
+		elif gst_category == 'B2C': self.supply_type = 1
+		elif gst_category == 'Foreigner': self.supply_type = 2
+		elif gst_category == 'B2G': self.supply_type = 3
 
 	def set_seller_details(self):
 		company_address = self.sales_invoice.company_address
@@ -107,12 +168,16 @@ class EInvoice(Document):
 			'address_line1': 'Address Lines',
 			'city': 'City',
 			'pincode': 'Pincode',
-			'gst_state_number': 'State Code'
+			'gst_state_number': 'State Code',
+			'email_id': 'Email Address'
 		}
 		for field, field_label in mandatory_field_label_map.items():
 			if not seller_address[field]:
 				frappe.throw(_('Company address {} must have {} set to be able to generate e-invoice.')
 					.format(company_address, field_label))
+    
+		# if not self.sales_invoice.seller_reference_no:
+		# 	frappe.throw(_('Reference No must be set'))
 
 		self.seller_legal_name = self.company
 		self.seller_gstin = seller_address.gstin
@@ -121,6 +186,11 @@ class EInvoice(Document):
 		self.seller_address_line_1 = seller_address.address_line1
 		self.seller_address_line_2 = seller_address.address_line2
 		self.seller_state_code = seller_address.gst_state_number
+		# Added fields
+		self.seller_email = seller_address.email_id
+		# Use invoice name instead
+		self.seller_reference_no = self.sales_invoice.name
+		self.seller_trade_name = self.company
 
 	def set_buyer_details(self):
 		customer_address = self.sales_invoice.customer_address
@@ -134,7 +204,8 @@ class EInvoice(Document):
 			'address_line1': 'Address Lines',
 			'city': 'City',
 			'pincode': 'Pincode',
-			'gst_state_number': 'State Code'
+			'gst_state_number': 'State Code',
+			'email_id': 'Email Address',
 		}
 		for field, field_label in mandatory_field_label_map.items():
 			if field == 'gstin':
@@ -155,6 +226,27 @@ class EInvoice(Document):
 		self.buyer_address_line_2 = buyer_address.address_line2
 		self.buyer_state_code = buyer_address.gst_state_number
 		self.buyer_place_of_supply = buyer_address.gst_state_number
+		#Added fields
+		self.buyer_email = buyer_address.email_id
+		self.supply_type = 0 # TODO: add to sales invoice
+  
+		# self.buyerTin = buyer_address.gstin
+		buyer_nin = frappe.get_list("Customer", fields="*", filters={'name':"Bakunga Bronson"})[0].nin
+		self.buyerNinBrn = "" if buyer_nin is None else  buyer_nin
+		pass_num = frappe.get_list("Customer", fields="*", filters={'name':"Bakunga Bronson"})[0].buyer_pass_num
+		self.buyerPassportNum = "" if pass_num is None else  pass_num
+		# self.buyerLegalName = ""
+		# self.buyerBusinessName = ""
+		# self.buyerAddress = ""
+		# self.buyerEmail = buyer_address.email_id
+		# self.buyerMobilePhone = ""
+		self.buyerLinePhone = buyer_address.phone # Picked from customer phone field
+		# self.buyerPlaceOfBusi = buyer_address.address_line1
+		# self.buyerType = 0 # Same as supply type
+		self.buyerCitizenship = "" # Hardcode for now
+		self.buyerSector = "" # Hardcode for now
+		self.buyerReferenceNo = "" # Hardcode for now
+		self.nonResidentFlag = 0 # Hardcode for now
 
 		if is_export:
 			self.buyer_gstin = 'URP'
@@ -225,9 +317,9 @@ class EInvoice(Document):
 				'gst_hsn_code': item.gst_hsn_code,
 				'quantity': abs(item.qty),
 				'discount': 0,
-				'unit': item.uom,
-				'rate': rate,
-				'amount': abs(item.taxable_value),
+				'unit': 101, # Hardcode value for now
+				'rate': item.rate,
+				'amount': item.amount,
 				'taxable_value': abs(item.taxable_value)
 			})
 
@@ -399,209 +491,181 @@ class EInvoice(Document):
 			self.previous_document_date = format_date(original_invoice_date, 'dd/mm/yyyy')
 
 	def get_einvoice_json(self):
+		# Update to have URA fields
 		einvoice_json = {
-			"Version": str(self.version),
-			"TranDtls": {
-				"TaxSch": self.tax_scheme,
-				"SupTyp": self.supply_type,
-				"RegRev": "Y" if self.reverse_charge else "N",
-				"EcmGstin": self.ecommerce_gstin,
-				"IgstOnIntra": "Y" if self.igst_on_intra else "N"
+			"payWay": [
+				{
+					"paymentMode": "101",
+					"paymentAmount": "240000.00",
+					"orderNumber": "a"
+				}
+			],
+			"extend": {
 			},
-			"DocDtls": {
-				"Typ": self.invoice_type,
-				"No": self.invoice,
-				"Dt": format_date(self.invoice_date, 'dd/mm/yyyy')
+			"importServicesSeller": {
+			},
+			"airlineGoodsDetails": [
+				{
+				}
+			],
+			"edcDetails": {
+			},
+			"agentEntity": {
 			}
 		}
 
-		einvoice_json.update(self.get_address_json())
-		einvoice_json.update(self.get_item_list_json())
-		einvoice_json.update(self.get_invoice_value_json())
-		einvoice_json.update(self.get_payment_details_json())
-		einvoice_json.update(self.get_return_details_json())
-		einvoice_json.update(self.get_export_details_json())
-		einvoice_json.update(self.get_ewaybill_details_json())
+
+		einvoice_json.update(self.get_seller_details_json())
+		einvoice_json.update(self.get_basic_information_json())
+		einvoice_json.update(self.get_buyer_details_json())
+		einvoice_json.update(self.get_buyer_extend())
+		einvoice_json.update(self.get_good_details())
+		einvoice_json.update(self.get_tax_details())
+		einvoice_json.update(self.get_summary())
 
 		return einvoice_json
 
-	def get_address_json(self):
-		addresses = {}
-		seller_address = {
-			"Gstin": self.seller_gstin,
-			"LglNm": self.seller_legal_name,
-			"TrdNm": self.seller_trade_name,
-			"Addr1": self.seller_address_line_1,
-			"Loc": self.seller_location,
-			"Pin": cint(self.seller_pincode),
-			"Stcd": self.seller_state_code,
-			"Ph": self.seller_phone,
-			"Em": self.seller_email
-		}
-		if self.seller_address_line_2:
-			seller_address.update({"Addr2": self.seller_address_line_2})
-		addresses.update({ "SellerDtls": seller_address })
-
-		buyer_address = {
-			"Gstin": self.buyer_gstin,
-			"LglNm": self.buyer_legal_name,
-			"TrdNm": self.buyer_trade_name,
-			"Pos": self.buyer_place_of_supply,
-			"Addr1": self.buyer_address_line_1,
-			"Loc": self.buyer_location,
-			"Pin": cint(self.buyer_pincode),
-			"Stcd": self.buyer_state_code,
-			"Ph": self.buyer_phone,
-			"Em": self.buyer_email
-		}
-		if self.buyer_address_line_2:
-			buyer_address.update({"Addr2": self.buyer_address_line_2})
-		addresses.update({ "BuyerDtls": buyer_address })
-
-		if self.dispatch_legal_name:
-			dispatch_address = {
-				"Nm": self.dispatch_legal_name,
-				"Addr1": self.dispatch_address_line_1,
-				"Loc": self.dispatch_location,
-				"Pin": cint(self.dispatch_pincode),
-				"Stcd": self.dispatch_state_code
+	def get_seller_details_json(self):
+		return {
+			"sellerDetails": {
+				"tin": self.seller_gstin,
+				"ninBrn": "",
+				"legalName": self.seller_legal_name,
+				"businessName": self.seller_trade_name,
+				"address": self.seller_location,
+				"mobilePhone": "15501234567",
+				"linePhone": "",
+				"emailAddress": self.seller_email,
+				"placeOfBusiness": self.seller_address_line_1,
+				"referenceNo": self.seller_reference_no,
+				"branchId": "",
+				"isCheckReferenceNo": "0",
+				"branchName": "Test",
+				"branchCode": ""
 			}
-			if self.dispatch_address_line_2:
-				dispatch_address.update({"Addr2": self.dispatch_address_line_2})
-			addresses.update({ "DispDtls": dispatch_address })
+		}
 
-		if self.shipping_legal_name:
-			shipping_address = {
-				"Gstin": self.shipping_gstin,
-				"LglNm": self.shipping_legal_name,
-				"TrdNm": self.shipping_trade_name,
-				"Pos": self.shipping_place_of_supply,
-				"Addr1": self.shipping_address_line_1,
-				"Loc": self.shipping_location,
-				"Pin": cint(self.shipping_pincode),
-				"Stcd": self.shipping_state_code
+	def get_basic_information_json(self):
+		return {
+			"basicInformation": {
+				"invoiceNo": "",
+				"antifakeCode": "",
+				"deviceNo": self.deviceNo,
+				"issuedDate": str(self.issuedDate),
+				"operator": self.operator,
+				"currency": self.currency,
+				"oriInvoiceId": "",
+				"invoiceType": str(self.invoiceType),
+				"invoiceKind": str(self.invoiceKind),
+				"dataSource": str(self.dataSource),
+				"invoiceIndustryCode": str(self.invoiceIndustryCode),
+				"isBatch": str(self.isBatch)
 			}
-			if self.shipping_address_line_2:
-				shipping_address.update({"Addr2": self.shipping_address_line_2})
-			addresses.update({ "ShipDtls": shipping_address })
+		}
+	
+	def get_buyer_details_json(self):
+		return {
+			"buyerDetails": {
+				"buyerTin": self.buyer_gstin,
+				"buyerNinBrn": self.buyerNinBrn,
+				"buyerPassportNum": self.buyerPassportNum,
+				"buyerLegalName": self.buyer_legal_name,
+				"buyerBusinessName": self.buyer_legal_name,
+				"buyerAddress": self.buyer_location,
+				"buyerEmail": self.buyer_email,
+				"buyerMobilePhone": self.buyerLinePhone,
+				"buyerLinePhone": "",
+				"buyerPlaceOfBusi": self.buyer_address_line_1,
+				"buyerType": "0",
+				"buyerCitizenship": self.buyerCitizenship,
+				"buyerSector": self.buyerSector,
+				"buyerReferenceNo": self.buyerReferenceNo,
+				"nonResidentFlag": self.nonResidentFlag
+			}
+		}
 
-		return addresses
+	def get_buyer_extend(self):
+		return {
+			"buyerExtend": {
+				"propertyType": "",
+				"district": "",
+				"municipalityCounty": "",
+				"divisionSubcounty": "",
+				"town": "",
+				"cellVillage": "",
+				"effectiveRegistrationDate": "",
+				"meterStatus": ""
+			}
+		}
 
-	def get_item_list_json(self):
+	def get_good_details(self):
 		item_list = []
 		for row in self.items:
 			item = {
-				"SlNo": str(row.idx),
-				"PrdDesc": row.item_name,
-				"IsServc": "Y" if row.is_service_item else "N",
-				"HsnCd": row.gst_hsn_code,
-				"Qty": row.quantity,
-				"Unit": row.unit,
-				"UnitPrice": row.rate,
-				"TotAmt": row.amount,
-				"Discount": row.discount,
-				"AssAmt": row.taxable_value,
-				"GstRt": row.gst_rate,
-				"IgstAmt": row.igst_amount,
-				"CgstAmt": row.cgst_amount,
-				"SgstAmt": row.sgst_amount,
-				"CesRt": row.cess_rate,
-				"CesAmt": row.cess_amount,
-				"CesNonAdvlAmt": row.cess_nadv_amount,
-				"OthChrg": row.other_charges,
-				"TotItemVal": row.total_item_value
+				"item": row.item_name,
+				"itemCode": row.item_code,
+				"qty": str(row.quantity),
+				"unitOfMeasure": "101",
+				"unitPrice": str(row.rate),
+				"total": str(row.amount),
+				"taxRate": "0.18", # Get from Uganda tax template
+				"tax": str(row.taxable_value),
+				"discountTotal": "",
+				"discountTaxRate": "0.00",
+				"orderNumber": 0,
+				"discountFlag": "2",
+				"deemedFlag": "2",
+				"exciseFlag": "2",
+				"categoryId": "",
+				"categoryName": "",
+				"goodsCategoryId": "50151513",
+				"goodsCategoryName": "Services",
+				"exciseRate": "",
+				"exciseRule": "",
+				"exciseTax": "",
+				"pack": "",
+				"stick": "",
+				"exciseUnit": "101",
+				"exciseCurrency": "UGX",
+				"exciseRateName": "",
+				"vatApplicableFlag": "1",
+				"deemedExemptCode": "",
+				"vatProjectId": "",
+				"vatProjectName": ""
 			}
 			item_list.append(item)
 		return {
-			"ItemList": item_list
+			"goodsDetails": item_list
 		}
-
-	def get_invoice_value_json(self):
+		
+	def get_tax_details(self):
+     
 		return {
-			"ValDtls": {
-				"AssVal": self.ass_value,
-				"CgstVal": self.cgst_value,
-				"SgstVal": self.sgst_value,
-				"IgstVal": self.igst_value,
-				"CesVal": self.cess_value,
-				"StCesVal": self.state_cess_value,
-				"Discount": self.invoice_discount,
-				"OthChrg": self.other_charges,
-				"RndOffAmt": self.round_off_amount,
-				"TotInvVal": self.base_invoice_value,
-				"TotInvValFc": self.invoice_value
+			"taxDetails": {
+				"taxCategoryCode": "01",
+				"netAmount": str(self.netAmount),
+				"taxRate": "0.18",
+				"taxAmount": str(self.taxAmount),
+				"grossAmount": str(self.grossAmount),
+				"exciseUnit": "101",
+				"exciseCurrency": "UGX",
+				"taxRateName": "123"
 			}
 		}
 
-	def get_payment_details_json(self):
-		if not self.payee_name:
-			return {}
-
+	def get_summary(self):
 		return {
-			"PayDtls": {
-				"Nm": self.payee_name,
-				"AccDet": self.account_detail,
-				"Mode": self.mode,
-				"FinInsBr": self.branch_or_ifsc,
-				"PayTerm": self.payment_term,
-				"CrDay": self.credit_days,
-				"PaidAmt": self.paid_amount,
-				"PaymtDue": self.payment_due
-			},
-		}
-
-	def get_return_details_json(self):
-		if not self.previous_document_no:
-			return {}
-
-		return {
-			"RefDtls": {
-				"PrecDocDtls": [
-					{
-						"InvNo": self.previous_document_no,
-						"InvDt": format_date(self.previous_document_date, 'dd/mm/yyyy')
-					}
-				]
+			"summary": {
+				"netAmount": str(self.netAmount),
+				"taxAmount": str(self.taxAmount),
+				"grossAmount": str(self.grossAmount),
+				"itemCount": str(self.itemCount),
+				"modeCode": str(self.modeCode),
+				"remarks": "Test Askcc invoice.",
+				"qrCode": ""
 			}
-		}
+       }
 
-	def get_export_details_json(self):
-		if not self.export_bill_no:
-			return {}
-
-		return {
-			"ExpDtls": {
-				"ShipBNo": self.export_bill_no,
-				"ShipBDt": format_date(self.export_bill_date, 'dd/mm/yyyy'),
-				"Port": self.port_code,
-				"RefClm": "Y" if self.claiming_refund else "N",
-				"ForCur": self.currency_code,
-				"CntCode": self.country_code
-			}
-		}
-
-	def get_ewaybill_details_json(self):
-		if not self.sales_invoice.transporter:
-			return {}
-
-		mode_of_transport = {'': '', 'Road': '1', 'Air': '2', 'Rail': '3', 'Ship': '4'}
-		vehicle_type = {'': None, 'Regular': 'R', 'Over Dimensional Cargo (ODC)': 'O'}
-
-		mode_of_transport = mode_of_transport[self.mode_of_transport]
-		vehicle_type = vehicle_type[self.vehicle_type]
-
-		return {
-			"EwbDtls": {
-				"TransId": self.transporter_gstin,
-				"TransName": self.transporter_name,
-				"Distance": cint(self.distance) or 0,
-				"TransDocNo": self.transport_document_no,
-				"TransDocDt": format_date(self.transport_document_date, 'dd/mm/yyyy'),
-				"VehNo": self.vehicle_no,
-				"VehType": vehicle_type,
-				"TransMode": mode_of_transport
-			}
-		}
 
 	def sync_with_sales_invoice(self):
 		# to fetch details from 'fetch_from' fields
@@ -740,8 +804,14 @@ def validate_einvoice_eligibility(doc):
 	service_provider = frappe.db.get_single_value('E Invoicing Settings', 'service_provider')
 	if not service_provider:
 		return False
+
+	# if service_provider ==  "ERP Champions Settings":
+	# 	einvoicing_enabled = frappe.get_cached_doc(service_provider)
+	# else:
+	# 	einvoicing_enabled = frappe.get_cached_doc("GST Settings", "GST Settings")
 	
 	einvoicing_enabled = cint(frappe.db.get_single_value(service_provider, 'enabled'))
+ 
 	if not einvoicing_enabled:
 		return False
 
@@ -751,7 +821,8 @@ def validate_einvoice_eligibility(doc):
 
 	eligible_companies = frappe.db.get_single_value('E Invoicing Settings', 'companies')
 	invalid_company = doc.get('company') not in eligible_companies
-	invalid_supply_type = doc.get('gst_category') not in ['Registered Regular', 'SEZ', 'Overseas', 'Deemed Export']
+	# Modified URA supply types
+	invalid_supply_type = False # doc.get('gst_category') not in ["0", "1", "2", "3"] # 0: B2B 1: B2C 2: Foreigner 3: B2G
 	inter_company_transaction = False # = doc.get('billing_address_gstin') == doc.get('company_gstin')
 	has_non_gst_item = any(d for d in doc.get('items', []) if d.get('is_non_gst'))
 	# if export invoice, then taxes can be empty
@@ -759,9 +830,10 @@ def validate_einvoice_eligibility(doc):
 	no_taxes_applied = not doc.get('taxes') and not doc.get('gst_category') == 'Overseas'
 
 	if invalid_company or invalid_supply_type or inter_company_transaction or no_taxes_applied or has_non_gst_item:
+		frappe.log_error(f'{invalid_company}, {invalid_supply_type}, {inter_company_transaction}, {no_taxes_applied}, {has_non_gst_item}')
 		return False
 
-	print("** validate_einvoice_eligibility true **")
+	frappe.log_error("** validate_einvoice_eligibility true **")
 	return True
 
 def validate_sales_invoice_submission(doc, method=""):
@@ -820,8 +892,16 @@ def get_gst_accounts(
         filters["account_type"] = "Reverse Charge"
     elif only_non_reverse_charge:
         filters["account_type"] = ("!=", "Reverse Charge")
-
-    settings = frappe.get_cached_doc("GST Settings", "GST Settings")
+        
+    service_provider = frappe.db.get_single_value('E Invoicing Settings', 'service_provider')
+ 
+    if not service_provider:
+        return False
+    if service_provider == "ERP Champions Settings":
+        settings = frappe.get_cached_doc(service_provider)
+    else:
+        settings = frappe.get_cached_doc("GST Settings", "GST Settings")
+        
     gst_accounts = settings.get("gst_accounts", filters)
     result = frappe._dict()
 
