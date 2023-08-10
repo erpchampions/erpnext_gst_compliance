@@ -231,9 +231,9 @@ class EInvoice(Document):
 		self.supply_type = 0 # TODO: add to sales invoice
   
 		# self.buyerTin = buyer_address.gstin
-		buyer_nin = frappe.get_list("Customer", fields="*", filters={'name':"Bakunga Bronson"})[0].nin
+		buyer_nin = frappe.get_list("Customer", fields="*", filters={'name':self.sales_invoice.customer})[0].nin
 		self.buyerNinBrn = "" if buyer_nin is None else  buyer_nin
-		pass_num = frappe.get_list("Customer", fields="*", filters={'name':"Bakunga Bronson"})[0].buyer_pass_num
+		pass_num = frappe.get_list("Customer", fields="*", filters={'name':self.sales_invoice.customer})[0].buyer_pass_num
 		self.buyerPassportNum = "" if pass_num is None else  pass_num
 		# self.buyerLegalName = ""
 		# self.buyerBusinessName = ""
