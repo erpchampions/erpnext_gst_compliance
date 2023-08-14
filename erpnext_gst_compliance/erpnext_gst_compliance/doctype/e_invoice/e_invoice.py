@@ -573,7 +573,7 @@ class EInvoice(Document):
 			"basicInformation": {
 				"invoiceNo": "",
 				"antifakeCode": "",
-				"deviceNo": self.deviceNo,
+				"deviceNo": self.device_no,
 				"issuedDate": str(self.issuedDate),
 				"operator": self.operator,
 				"currency": self.currency,
