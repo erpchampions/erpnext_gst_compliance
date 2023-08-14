@@ -543,6 +543,8 @@ class EInvoice(Document):
 		einvoice_json.update(self.get_good_details())
 		einvoice_json.update(self.get_tax_details())
 		einvoice_json.update(self.get_summary())
+  
+		frappe.log_error(title="Einvoice JSON", message=einvoice_json)
 
 		return einvoice_json
 
