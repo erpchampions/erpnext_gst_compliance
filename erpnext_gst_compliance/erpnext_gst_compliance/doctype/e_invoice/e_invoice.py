@@ -623,16 +623,19 @@ class EInvoice(Document):
 
 	def get_good_details(self):
 		item_list = []
-		for row in self.items:
+		item_taxes = loads(self.sales_invoice.taxes[0].item_wise_tax_detail)
+		for row in self.sales_invoice.items:
+			frappe.log_error(title="Item details", message=row.as_dict())
+   
 			item = {
 				"item": row.item_name,
 				"itemCode": row.item_code,
-				"qty": str(row.quantity),
+				"qty": str(row.qty),
 				"unitOfMeasure": "101",
 				"unitPrice": str(row.rate),
 				"total": str(row.amount),
-				"taxRate": "0.18", # Get from Uganda tax template
-				"tax": str(row.taxable_value),
+				"taxRate": str(item_taxes[row.item_code][0]/100), # Get from Uganda tax template
+				"tax": str(round(item_taxes[row.item_code][1], 2)),
 				"discountTotal": "",
 				"discountTaxRate": "0.00",
 				"orderNumber": 0,
