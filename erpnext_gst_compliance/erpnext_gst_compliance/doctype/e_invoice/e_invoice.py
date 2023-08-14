@@ -456,6 +456,12 @@ class EInvoice(Document):
 		self.round_off_amount = self.sales_invoice.base_rounding_adjustment
 		self.base_invoice_value = abs(self.sales_invoice.base_rounded_total) or abs(self.sales_invoice.base_grand_total)
 		self.invoice_value = abs(self.sales_invoice.rounded_total) or abs(self.sales_invoice.grand_total)
+		self.net_amount = self.sales_invoice.net_total
+    
+		if len(self.sales_invoice.taxes):
+			self.tax_amount = self.sales_invoice.taxes[0].tax_amount
+		else:
+			self.tax_amount = 0
 
 		self.set_invoice_tax_details()
 
