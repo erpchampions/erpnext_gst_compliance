@@ -81,6 +81,7 @@ class EInvoice(Document):
 		self.set_basic_information()
 		self.set_buyer_extend()
 		self.set_summary_details()
+		self.set_tax_details()
   
 	def set_basic_information(self):
      
@@ -156,6 +157,25 @@ class EInvoice(Document):
 		elif gst_category == 'B2C': self.supply_type = 1
 		elif gst_category == 'Foreigner': self.supply_type = 2
 		elif gst_category == 'B2G': self.supply_type = 3
+  
+	def set_tax_details(self):
+     
+		if len(self.sales_invoice.taxes) > 0 and len(self.taxes) < 1:
+			taxes = frappe._dict({
+				"tax_category_code" : "01",
+				"net_amount" : abs(self.sales_invoice.taxes[0].total - self.sales_invoice.taxes[0].tax_amount),
+				"tax_rate" : self.sales_invoice.taxes[0].rate/100,
+				"tax_amount" : self.sales_invoice.taxes[0].tax_amount,
+				"gross_amount" : self.sales_invoice.taxes[0].total,
+				"excise_unit" : "101",
+				"excise_currency" : "UGX",
+				"tax_rate_name" : "123"
+			})
+			self.append("taxes", taxes)
+		else:
+			return
+		
+		
 
 	def set_seller_details(self):
 		company_address = self.sales_invoice.company_address
