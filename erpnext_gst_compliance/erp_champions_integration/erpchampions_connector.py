@@ -11,15 +11,16 @@ from frappe.utils.data import get_link_to_form
 from erpnext_gst_compliance.utils import log_exception
 from frappe.integrations.utils import make_post_request, make_get_request
 from frappe.utils.data import add_to_date, time_diff_in_seconds, now_datetime
+import erpnext_gst_compliance.efris_utils
 
 class ErpChampionsConnector:
 	def __init__(self, gstin):
 
 		self.gstin = gstin
-		self.settings = frappe.get_cached_doc("Erp Champions Settings")
-		self.credentials = self.get_user_credentials()
-		self.host = self.get_host_url()
-		self.endpoints = self.get_endpoints()
+		self.settings = frappe.get_cached_doc("ERP Champions Settings")
+		# self.credentials = self.get_user_credentials()
+		# self.host = self.get_host_url()
+		# self.endpoints = self.get_endpoints()
 
 		self.validate()
 
@@ -48,10 +49,10 @@ class ErpChampionsConnector:
 		if not self.settings.enabled:
 			frappe.throw(_("Erp Champions Settings is not enabled. Please configure Erp Champions Settings and try again."))
 		
-		if not self.credentials:
-			settings_form = get_link_to_form('Erp Champions Settings', 'Erp Champions Settings')
-			frappe.throw(_("Cannot find Erp Champions Credentials for selected Company GSTIN {}. Please check {}.")
-				.format(self.gstin, settings_form))
+		# if not self.credentials:
+		# 	settings_form = get_link_to_form('Erp Champions Settings', 'Erp Champions Settings')
+		# 	frappe.throw(_("Cannot find Erp Champions Credentials for selected Company GSTIN {}. Please check {}.")
+		# 		.format(self.gstin, settings_form))
 
 	@log_exception
 	def make_request(self, req_type, url, headers, payload):
@@ -118,15 +119,17 @@ class ErpChampionsConnector:
 
 	@log_exception
 	def make_irn_request(self):
-		headers = self.get_headers()
-		url = self.endpoints.generate_irn
+		# headers = self.get_headers()
+		# url = self.endpoints.generate_irn
 
 		einvoice_json = self.einvoice.get_einvoice_json()
-		payload = dumps(einvoice_json, indent=4)
+		frappe.log_error(title="ErpChampionsConnector Einvoice", message=einvoice_json)
 
-		response = self.make_request('post', url, headers, payload)
-
-		sucess, errors = self.handle_irn_generation_response(response)
+		# response = self.make_request('post', url, headers, payload)
+		response = erpnext_gst_compliance.efris_utils.make_post("T109", einvoice_json)
+		frappe.log_error(str(response[1]))
+  
+		sucess, errors = self.handle_irn_generation_response(response[1])
 		return sucess, errors
 
 	@staticmethod

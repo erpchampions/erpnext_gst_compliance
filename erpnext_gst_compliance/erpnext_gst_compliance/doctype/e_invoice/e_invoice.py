@@ -81,6 +81,7 @@ class EInvoice(Document):
 		self.set_basic_information()
 		self.set_buyer_extend()
 		self.set_summary_details()
+		self.set_tax_details()
   
 	def set_basic_information(self):
      
@@ -91,8 +92,8 @@ class EInvoice(Document):
 		# URA set fields
 		self.invoiceNo = ""
 		self.antifakeCode = ""
-  
-		self.deviceNo = frappe.db.get_single_value(service_provider, 'device_no')
+	
+		self.device_no = frappe.db.get_single_value(service_provider, 'device_no')
 		self.issuedDate = self.sales_invoice.creation
 		self.operator = self.sales_invoice.modified_by
 		self.currency = self.sales_invoice.currency
@@ -116,8 +117,8 @@ class EInvoice(Document):
   
 	def set_summary_details(self):
 		self.netAmount = self.sales_invoice.net_total
-		if len(self.taxes) > 0:
-			self.taxAmount = self.taxes[0].as_dict().tax_amount
+		if len(self.sales_invoice.taxes) > 0:
+			self.taxAmount = self.sales_invoice.taxes[0].tax_amount
 		else:
 			self.taxAmount = 0
 		
@@ -156,6 +157,25 @@ class EInvoice(Document):
 		elif gst_category == 'B2C': self.supply_type = 1
 		elif gst_category == 'Foreigner': self.supply_type = 2
 		elif gst_category == 'B2G': self.supply_type = 3
+  
+	def set_tax_details(self):
+     
+		if len(self.sales_invoice.taxes) > 0 and len(self.taxes) < 1:
+			taxes = frappe._dict({
+				"tax_category_code" : "01",
+				"net_amount" : abs(self.sales_invoice.taxes[0].total - self.sales_invoice.taxes[0].tax_amount),
+				"tax_rate" : self.sales_invoice.taxes[0].rate/100,
+				"tax_amount" : self.sales_invoice.taxes[0].tax_amount,
+				"gross_amount" : self.sales_invoice.taxes[0].total,
+				"excise_unit" : "101",
+				"excise_currency" : "UGX",
+				"tax_rate_name" : "123"
+			})
+			self.append("taxes", taxes)
+		else:
+			return
+		
+		
 
 	def set_seller_details(self):
 		company_address = self.sales_invoice.company_address
@@ -228,7 +248,6 @@ class EInvoice(Document):
 		self.buyer_place_of_supply = buyer_address.gst_state_number
 		#Added fields
 		self.buyer_email = buyer_address.email_id
-		self.supply_type = 0 # TODO: add to sales invoice
   
 		# self.buyerTin = buyer_address.gstin
 		buyer_nin = frappe.get_list("Customer", fields="*", filters={'name':self.sales_invoice.customer})[0].nin
@@ -297,7 +316,9 @@ class EInvoice(Document):
 			self.fetch_items_from_invoice()
 
 	def fetch_items_from_invoice(self):
+		item_taxes = loads(self.sales_invoice.taxes[0].item_wise_tax_detail)
 		for item in self.sales_invoice.items:
+			frappe.log_error(title="Sales Item Picking", message=item.as_dict())
 			if not item.gst_hsn_code:
 				frappe.throw(_('Row #{}: Item {} must have HSN code set to be able to generate e-invoice.')
 					.format(item.idx, item.item_code))
@@ -317,12 +338,15 @@ class EInvoice(Document):
 				'gst_hsn_code': item.gst_hsn_code,
 				'quantity': abs(item.qty),
 				'discount': 0,
-				'unit': 101, # Hardcode value for now
+				'unit': item.uom, # Hardcode value for now
 				'rate': item.rate,
+				'tax': item_taxes[item.item_code][1],
+				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
 				'amount': item.amount,
-				'taxable_value': abs(item.taxable_value)
+				'taxable_value': abs(item.amount)
 			})
-
+			frappe.log_error(title="Einvoice Item before tax set", message=einvoice_item)
+   
 			self.set_item_tax_details(einvoice_item)
 
 			einvoice_item.total_item_value = abs(
@@ -332,10 +356,13 @@ class EInvoice(Document):
 				einvoice_item.other_charges
 			)
 			self.append('items', einvoice_item)
+   
+			frappe.log_error(title="Einvoice Item before tax set", message=einvoice_item)
 
 		self.set_calculated_item_totals()
 
 	def update_items_from_invoice(self):
+		item_taxes = loads(self.sales_invoice.taxes[0].item_wise_tax_detail)
 		for i, einvoice_item in enumerate(self.items):
 			item = self.sales_invoice.items[i]
 
@@ -353,9 +380,10 @@ class EInvoice(Document):
 				'quantity': abs(item.qty),
 				'discount': 0,
 				'unit': item.uom,
-				'rate': abs((abs(item.taxable_value)) / item.qty),
-				'amount': abs(item.taxable_value),
-				'taxable_value': abs(item.taxable_value)
+				'rate': item.rate,
+				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
+				'amount': item.amount,
+				'taxable_value': abs(item.amount),
 			})
 
 			self.set_item_tax_details(einvoice_item)
@@ -493,13 +521,6 @@ class EInvoice(Document):
 	def get_einvoice_json(self):
 		# Update to have URA fields
 		einvoice_json = {
-			"payWay": [
-				{
-					"paymentMode": "101",
-					"paymentAmount": "240000.00",
-					"orderNumber": "a"
-				}
-			],
 			"extend": {
 			},
 			"importServicesSeller": {
@@ -522,6 +543,8 @@ class EInvoice(Document):
 		einvoice_json.update(self.get_good_details())
 		einvoice_json.update(self.get_tax_details())
 		einvoice_json.update(self.get_summary())
+  
+		frappe.log_error(title="Einvoice JSON", message=einvoice_json)
 
 		return einvoice_json
 
@@ -550,7 +573,7 @@ class EInvoice(Document):
 			"basicInformation": {
 				"invoiceNo": "",
 				"antifakeCode": "",
-				"deviceNo": self.deviceNo,
+				"deviceNo": self.device_no,
 				"issuedDate": str(self.issuedDate),
 				"operator": self.operator,
 				"currency": self.currency,
@@ -600,16 +623,19 @@ class EInvoice(Document):
 
 	def get_good_details(self):
 		item_list = []
-		for row in self.items:
+		item_taxes = loads(self.sales_invoice.taxes[0].item_wise_tax_detail)
+		for row in self.sales_invoice.items:
+			frappe.log_error(title="Item details", message=row.as_dict())
+   
 			item = {
 				"item": row.item_name,
 				"itemCode": row.item_code,
-				"qty": str(row.quantity),
+				"qty": str(row.qty),
 				"unitOfMeasure": "101",
 				"unitPrice": str(row.rate),
 				"total": str(row.amount),
-				"taxRate": "0.18", # Get from Uganda tax template
-				"tax": str(row.taxable_value),
+				"taxRate": str(item_taxes[row.item_code][0]/100), # Get from Uganda tax template
+				"tax": str(round(item_taxes[row.item_code][1], 2)),
 				"discountTotal": "",
 				"discountTaxRate": "0.00",
 				"orderNumber": 0,
@@ -641,16 +667,16 @@ class EInvoice(Document):
 	def get_tax_details(self):
      
 		return {
-			"taxDetails": {
+			"taxDetails": [{
 				"taxCategoryCode": "01",
 				"netAmount": str(self.netAmount),
-				"taxRate": "0.18",
+				"taxRate": str(self.sales_invoice.taxes[0].rate/100),
 				"taxAmount": str(self.taxAmount),
 				"grossAmount": str(self.grossAmount),
 				"exciseUnit": "101",
 				"exciseCurrency": "UGX",
 				"taxRateName": "123"
-			}
+			}]
 		}
 
 	def get_summary(self):
