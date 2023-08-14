@@ -212,7 +212,7 @@
    "fieldname": "invoice_type",
    "fieldtype": "Select",
    "label": "Invoice Type",
-   "options": "INV\nCRN\nDBN"
+   "options": "1\n4\n5"
   },
   {
    "collapsible": 1,
@@ -939,7 +939,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-07-29 08:01:36.972272",
+ "modified": "2023-08-11 15:20:11.031962",
  "modified_by": "Administrator",
  "module": "ERPNext GST Compliance",
  "name": "E Invoice",
