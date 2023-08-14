@@ -316,7 +316,9 @@ class EInvoice(Document):
 			self.fetch_items_from_invoice()
 
 	def fetch_items_from_invoice(self):
+		item_taxes = loads(self.sales_invoice.taxes[0].item_wise_tax_detail)
 		for item in self.sales_invoice.items:
+			frappe.log_error(title="Sales Item Picking", message=item.as_dict())
 			if not item.gst_hsn_code:
 				frappe.throw(_('Row #{}: Item {} must have HSN code set to be able to generate e-invoice.')
 					.format(item.idx, item.item_code))
@@ -336,12 +338,15 @@ class EInvoice(Document):
 				'gst_hsn_code': item.gst_hsn_code,
 				'quantity': abs(item.qty),
 				'discount': 0,
-				'unit': 101, # Hardcode value for now
+				'unit': item.uom, # Hardcode value for now
 				'rate': item.rate,
+				'tax': item_taxes[item.item_code][1],
+				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
 				'amount': item.amount,
-				'taxable_value': abs(item.taxable_value)
+				'taxable_value': abs(item.amount)
 			})
-
+			frappe.log_error(title="Einvoice Item before tax set", message=einvoice_item)
+   
 			self.set_item_tax_details(einvoice_item)
 
 			einvoice_item.total_item_value = abs(
@@ -351,10 +356,13 @@ class EInvoice(Document):
 				einvoice_item.other_charges
 			)
 			self.append('items', einvoice_item)
+   
+			frappe.log_error(title="Einvoice Item before tax set", message=einvoice_item)
 
 		self.set_calculated_item_totals()
 
 	def update_items_from_invoice(self):
+		item_taxes = loads(self.sales_invoice.taxes[0].item_wise_tax_detail)
 		for i, einvoice_item in enumerate(self.items):
 			item = self.sales_invoice.items[i]
 
@@ -372,9 +380,10 @@ class EInvoice(Document):
 				'quantity': abs(item.qty),
 				'discount': 0,
 				'unit': item.uom,
-				'rate': abs((abs(item.taxable_value)) / item.qty),
-				'amount': abs(item.taxable_value),
-				'taxable_value': abs(item.taxable_value)
+				'rate': item.rate,
+				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
+				'amount': item.amount,
+				'taxable_value': abs(item.amount),
 			})
 
 			self.set_item_tax_details(einvoice_item)
