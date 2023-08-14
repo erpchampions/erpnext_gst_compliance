@@ -521,13 +521,6 @@ class EInvoice(Document):
 	def get_einvoice_json(self):
 		# Update to have URA fields
 		einvoice_json = {
-			"payWay": [
-				{
-					"paymentMode": "101",
-					"paymentAmount": "240000.00",
-					"orderNumber": "a"
-				}
-			],
 			"extend": {
 			},
 			"importServicesSeller": {
