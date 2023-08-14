@@ -248,7 +248,6 @@ class EInvoice(Document):
 		self.buyer_place_of_supply = buyer_address.gst_state_number
 		#Added fields
 		self.buyer_email = buyer_address.email_id
-		self.supply_type = 0 # TODO: add to sales invoice
   
 		# self.buyerTin = buyer_address.gstin
 		buyer_nin = frappe.get_list("Customer", fields="*", filters={'name':self.sales_invoice.customer})[0].nin
