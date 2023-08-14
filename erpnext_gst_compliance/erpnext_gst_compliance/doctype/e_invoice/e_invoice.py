@@ -667,16 +667,16 @@ class EInvoice(Document):
 	def get_tax_details(self):
      
 		return {
-			"taxDetails": {
+			"taxDetails": [{
 				"taxCategoryCode": "01",
 				"netAmount": str(self.netAmount),
-				"taxRate": "0.18",
+				"taxRate": str(self.sales_invoice.taxes[0].rate/100),
 				"taxAmount": str(self.taxAmount),
 				"grossAmount": str(self.grossAmount),
 				"exciseUnit": "101",
 				"exciseCurrency": "UGX",
 				"taxRateName": "123"
-			}
+			}]
 		}
 
 	def get_summary(self):
