@@ -117,8 +117,8 @@ class EInvoice(Document):
   
 	def set_summary_details(self):
 		self.netAmount = self.sales_invoice.net_total
-		if len(self.taxes) > 0:
-			self.taxAmount = self.taxes[0].as_dict().tax_amount
+		if len(self.sales_invoice.taxes) > 0:
+			self.taxAmount = self.sales_invoice.taxes[0].tax_amount
 		else:
 			self.taxAmount = 0
 		
