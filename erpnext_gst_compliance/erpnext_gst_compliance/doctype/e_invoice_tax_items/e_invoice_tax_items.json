@@ -19,26 +19,31 @@
   {
    "fieldname": "tax_category_code",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Tax Category Code"
   },
   {
    "fieldname": "net_amount",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Net Amount"
   },
   {
    "fieldname": "tax_rate",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Tax Rate"
   },
   {
    "fieldname": "tax_amount",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Tax Amount"
   },
   {
    "fieldname": "gross_amount",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Gross Amount"
   },
   {
@@ -60,7 +65,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2023-07-29 06:39:08.871199",
+ "modified": "2023-08-17 07:00:26.386158",
  "modified_by": "Administrator",
  "module": "ERPNext GST Compliance",
  "name": "E Invoice Tax Items",
