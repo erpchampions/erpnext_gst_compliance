@@ -387,6 +387,7 @@ class EInvoice(Document):
 				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
 				'amount': item.amount,
 				'taxable_value': abs(item.amount),
+				'tax': round(item_taxes[item.item_code][1], 2)
 			})
 
 			self.set_item_tax_details(einvoice_item)
