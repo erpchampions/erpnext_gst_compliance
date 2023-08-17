@@ -59,15 +59,6 @@ class EInvoice(Document):
 	@frappe.whitelist()
 	def fetch_invoice_details(self):
      
-		# ERP Champions: Mimic the doctype structure as customized for EFRIS
-		# set_basic_information()
-		# set_seller_details()
-		# set_buyer_details()
-		# set_buyer_extend() #skip for phase 1
-		# set_item_details()
-		# set_tax_details()
-		# set_summary_details()
-  
 		self.set_sales_invoice()
 		self.set_invoice_type()
 		self.set_supply_type()
@@ -251,20 +242,11 @@ class EInvoice(Document):
 		self.buyer_place_of_supply = buyer_address.gst_state_number
 		#Added fields
 		self.buyer_email = buyer_address.email_id
-  
-		# self.buyerTin = buyer_address.gstin
 		buyer_nin = frappe.get_list("Customer", fields="*", filters={'name':self.sales_invoice.customer})[0].nin
 		self.buyerNinBrn = "" if buyer_nin is None else  buyer_nin
 		pass_num = frappe.get_list("Customer", fields="*", filters={'name':self.sales_invoice.customer})[0].buyer_pass_num
 		self.buyerPassportNum = "" if pass_num is None else  pass_num
-		# self.buyerLegalName = ""
-		# self.buyerBusinessName = ""
-		# self.buyerAddress = ""
-		# self.buyerEmail = buyer_address.email_id
-		# self.buyerMobilePhone = ""
 		self.buyer_phone = buyer_address.phone # Picked from customer phone field
-		# self.buyerPlaceOfBusi = buyer_address.address_line1
-		# self.buyerType = 0 # Same as supply type
 		self.buyerCitizenship = "" # Hardcode for now
 		self.buyerSector = "" # Hardcode for now
 		self.buyerReferenceNo = "" # Hardcode for now
