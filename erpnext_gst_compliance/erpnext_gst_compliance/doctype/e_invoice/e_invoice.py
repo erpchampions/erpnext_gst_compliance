@@ -163,7 +163,7 @@ class EInvoice(Document):
 		if len(self.sales_invoice.taxes) > 0 and len(self.taxes) < 1:
 			taxes = frappe._dict({
 				"tax_category_code" : "01",
-				"net_amount" : abs(self.sales_invoice.taxes[0].total - self.sales_invoice.taxes[0].tax_amount),
+				"net_amount" : self.sales_invoice.net_total,
 				"tax_rate" : self.sales_invoice.taxes[0].rate/100,
 				"tax_amount" : self.sales_invoice.taxes[0].tax_amount,
 				"gross_amount" : self.sales_invoice.taxes[0].total,
