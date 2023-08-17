@@ -178,6 +178,7 @@
    "fieldname": "supply_type",
    "fieldtype": "Select",
    "label": "Buyer Type",
+   "options": "0\n1\n2\n3",
    "reqd": 1
   },
   {
@@ -939,7 +940,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-08-11 15:20:11.031962",
+ "modified": "2023-08-14 22:09:32.869821",
  "modified_by": "Administrator",
  "module": "ERPNext GST Compliance",
  "name": "E Invoice",
