@@ -113,8 +113,8 @@ class EInvoice(Document):
 		else:
 			self.taxAmount = 0
 		
-		self.grossAmount = self.sales_invoice.grand_total
-		self.itemCount = len(self.sales_invoice.items)
+		self.gross_amount = self.sales_invoice.grand_total
+		self.item_count = len(self.sales_invoice.items)
 		self.modeCode = 1 # Hardcode for now
 		self.remarks = "Test Askcc invoice"
 		self.qrCode = ""
@@ -663,7 +663,7 @@ class EInvoice(Document):
 				"netAmount": str(self.netAmount),
 				"taxRate": str(self.sales_invoice.taxes[0].rate/100),
 				"taxAmount": str(self.taxAmount),
-				"grossAmount": str(self.grossAmount),
+				"grossAmount": str(self.gross_amount),
 				"exciseUnit": "101",
 				"exciseCurrency": "UGX",
 				"taxRateName": "123"
@@ -675,8 +675,8 @@ class EInvoice(Document):
 			"summary": {
 				"netAmount": str(self.netAmount),
 				"taxAmount": str(self.taxAmount),
-				"grossAmount": str(self.grossAmount),
-				"itemCount": str(self.itemCount),
+				"grossAmount": str(self.gross_amount),
+				"itemCount": str(self.item_count),
 				"modeCode": str(self.modeCode),
 				"remarks": "Test Askcc invoice.",
 				"qrCode": ""
