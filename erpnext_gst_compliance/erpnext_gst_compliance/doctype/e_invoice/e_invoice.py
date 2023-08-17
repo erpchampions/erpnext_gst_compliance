@@ -615,7 +615,7 @@ class EInvoice(Document):
 
 	def get_good_details(self):
 		item_list = []
-		for i, row in enumerate(self.items):
+		for row in self.items:
 			frappe.log_error(title="Item details", message=row.as_dict())
    
 			item = {
