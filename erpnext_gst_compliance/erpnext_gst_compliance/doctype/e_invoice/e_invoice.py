@@ -325,7 +325,7 @@ class EInvoice(Document):
 				'discount': 0,
 				'unit': item.uom, # Hardcode value for now
 				'rate': item.rate,
-				'tax': item_taxes[item.item_code][1],
+				'tax': round(item_taxes[item.item_code][1], 2),
 				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
 				'amount': item.amount,
 				'taxable_value': abs(item.amount),
