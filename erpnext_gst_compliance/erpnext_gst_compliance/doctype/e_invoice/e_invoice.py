@@ -59,15 +59,6 @@ class EInvoice(Document):
 	@frappe.whitelist()
 	def fetch_invoice_details(self):
      
-		# ERP Champions: Mimic the doctype structure as customized for EFRIS
-		# set_basic_information()
-		# set_seller_details()
-		# set_buyer_details()
-		# set_buyer_extend() #skip for phase 1
-		# set_item_details()
-		# set_tax_details()
-		# set_summary_details()
-  
 		self.set_sales_invoice()
 		self.set_invoice_type()
 		self.set_supply_type()
@@ -122,8 +113,8 @@ class EInvoice(Document):
 		else:
 			self.taxAmount = 0
 		
-		self.grossAmount = self.sales_invoice.grand_total
-		self.itemCount = len(self.sales_invoice.items)
+		self.gross_amount = self.sales_invoice.grand_total
+		self.item_count = len(self.sales_invoice.items)
 		self.modeCode = 1 # Hardcode for now
 		self.remarks = "Test Askcc invoice"
 		self.qrCode = ""
@@ -163,7 +154,7 @@ class EInvoice(Document):
 		if len(self.sales_invoice.taxes) > 0 and len(self.taxes) < 1:
 			taxes = frappe._dict({
 				"tax_category_code" : "01",
-				"net_amount" : abs(self.sales_invoice.taxes[0].total - self.sales_invoice.taxes[0].tax_amount),
+				"net_amount" : self.sales_invoice.net_total,
 				"tax_rate" : self.sales_invoice.taxes[0].rate/100,
 				"tax_amount" : self.sales_invoice.taxes[0].tax_amount,
 				"gross_amount" : self.sales_invoice.taxes[0].total,
@@ -189,7 +180,8 @@ class EInvoice(Document):
 			'city': 'City',
 			'pincode': 'Pincode',
 			'gst_state_number': 'State Code',
-			'email_id': 'Email Address'
+			'email_id': 'Email Address',
+			'phone': 'Phone'
 		}
 		for field, field_label in mandatory_field_label_map.items():
 			if not seller_address[field]:
@@ -206,6 +198,7 @@ class EInvoice(Document):
 		self.seller_address_line_1 = seller_address.address_line1
 		self.seller_address_line_2 = seller_address.address_line2
 		self.seller_state_code = seller_address.gst_state_number
+		self.seller_phone = seller_address.phone
 		# Added fields
 		self.seller_email = seller_address.email_id
 		# Use invoice name instead
@@ -226,6 +219,7 @@ class EInvoice(Document):
 			'pincode': 'Pincode',
 			'gst_state_number': 'State Code',
 			'email_id': 'Email Address',
+			'phone': 'Phone'
 		}
 		for field, field_label in mandatory_field_label_map.items():
 			if field == 'gstin':
@@ -248,20 +242,11 @@ class EInvoice(Document):
 		self.buyer_place_of_supply = buyer_address.gst_state_number
 		#Added fields
 		self.buyer_email = buyer_address.email_id
-  
-		# self.buyerTin = buyer_address.gstin
 		buyer_nin = frappe.get_list("Customer", fields="*", filters={'name':self.sales_invoice.customer})[0].nin
 		self.buyerNinBrn = "" if buyer_nin is None else  buyer_nin
 		pass_num = frappe.get_list("Customer", fields="*", filters={'name':self.sales_invoice.customer})[0].buyer_pass_num
 		self.buyerPassportNum = "" if pass_num is None else  pass_num
-		# self.buyerLegalName = ""
-		# self.buyerBusinessName = ""
-		# self.buyerAddress = ""
-		# self.buyerEmail = buyer_address.email_id
-		# self.buyerMobilePhone = ""
-		self.buyerLinePhone = buyer_address.phone # Picked from customer phone field
-		# self.buyerPlaceOfBusi = buyer_address.address_line1
-		# self.buyerType = 0 # Same as supply type
+		self.buyer_phone = buyer_address.phone # Picked from customer phone field
 		self.buyerCitizenship = "" # Hardcode for now
 		self.buyerSector = "" # Hardcode for now
 		self.buyerReferenceNo = "" # Hardcode for now
@@ -317,7 +302,7 @@ class EInvoice(Document):
 
 	def fetch_items_from_invoice(self):
 		item_taxes = loads(self.sales_invoice.taxes[0].item_wise_tax_detail)
-		for item in self.sales_invoice.items:
+		for i, item in enumerate(self.sales_invoice.items):
 			frappe.log_error(title="Sales Item Picking", message=item.as_dict())
 			if not item.gst_hsn_code:
 				frappe.throw(_('Row #{}: Item {} must have HSN code set to be able to generate e-invoice.')
@@ -340,10 +325,12 @@ class EInvoice(Document):
 				'discount': 0,
 				'unit': item.uom, # Hardcode value for now
 				'rate': item.rate,
-				'tax': item_taxes[item.item_code][1],
+				'tax': round(item_taxes[item.item_code][1], 2),
 				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
 				'amount': item.amount,
-				'taxable_value': abs(item.amount)
+				'taxable_value': abs(item.amount),
+				'order_number': i,
+				'hsn_code_description': frappe.get_doc("GST HSN Code", item.gst_hsn_code).commodity_name
 			})
 			frappe.log_error(title="Einvoice Item before tax set", message=einvoice_item)
    
@@ -384,6 +371,9 @@ class EInvoice(Document):
 				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
 				'amount': item.amount,
 				'taxable_value': abs(item.amount),
+				'tax': round(item_taxes[item.item_code][1], 2),
+    			'order_number': i,
+				'hsn_code_description': frappe.get_doc("GST HSN Code", item.gst_hsn_code).commodity_name
 			})
 
 			self.set_item_tax_details(einvoice_item)
@@ -417,7 +407,7 @@ class EInvoice(Document):
 		gst_accounts = get_gst_accounts(self.company)
 		gst_accounts_list = [d for accounts in gst_accounts.values() for d in accounts if d]
 
-		for attr in ['gst_rate', 'cgst_amount',  'sgst_amount', 'igst_amount',
+		for attr in ['cgst_amount',  'sgst_amount', 'igst_amount',
 			'cess_rate', 'cess_amount', 'cess_nadv_amount', 'other_charges']:
 			item.update({ attr: 0 })
 
@@ -441,7 +431,7 @@ class EInvoice(Document):
 
 				for tax_type in ['igst', 'cgst', 'sgst']:
 					if t.account_head in gst_accounts[f'{tax_type}_account']:
-						item.gst_rate += item_tax_rate
+						# item.gst_rate += item_tax_rate
 						amt_fieldname = f'{tax_type}_amount'
 						item.update({
 							amt_fieldname: item.get(amt_fieldname, 0) + abs(item_tax_amount)
@@ -562,7 +552,7 @@ class EInvoice(Document):
 				"legalName": self.seller_legal_name,
 				"businessName": self.seller_trade_name,
 				"address": self.seller_location,
-				"mobilePhone": "15501234567",
+				"mobilePhone": self.seller_phone,
 				"linePhone": "",
 				"emailAddress": self.seller_email,
 				"placeOfBusiness": self.seller_address_line_1,
@@ -602,10 +592,10 @@ class EInvoice(Document):
 				"buyerBusinessName": self.buyer_legal_name,
 				"buyerAddress": self.buyer_location,
 				"buyerEmail": self.buyer_email,
-				"buyerMobilePhone": self.buyerLinePhone,
+				"buyerMobilePhone": self.buyer_phone,
 				"buyerLinePhone": "",
 				"buyerPlaceOfBusi": self.buyer_address_line_1,
-				"buyerType": "0",
+				"buyerType": self.supply_type,
 				"buyerCitizenship": self.buyerCitizenship,
 				"buyerSector": self.buyerSector,
 				"buyerReferenceNo": self.buyerReferenceNo,
@@ -629,29 +619,28 @@ class EInvoice(Document):
 
 	def get_good_details(self):
 		item_list = []
-		item_taxes = loads(self.sales_invoice.taxes[0].item_wise_tax_detail)
-		for row in self.sales_invoice.items:
+		for row in self.items:
 			frappe.log_error(title="Item details", message=row.as_dict())
    
 			item = {
 				"item": row.item_name,
 				"itemCode": row.item_code,
-				"qty": str(row.qty),
+				"qty": str(row.quantity),
 				"unitOfMeasure": "101",
 				"unitPrice": str(row.rate),
 				"total": str(row.amount),
-				"taxRate": str(item_taxes[row.item_code][0]/100), # Get from Uganda tax template
-				"tax": str(round(item_taxes[row.item_code][1], 2)),
+				"taxRate": str(row.gst_rate), # Get from Uganda tax template
+				"tax": str(row.tax),
 				"discountTotal": "",
 				"discountTaxRate": "0.00",
-				"orderNumber": 0,
+				"orderNumber": str(row.order_number),
 				"discountFlag": "2",
 				"deemedFlag": "2",
 				"exciseFlag": "2",
 				"categoryId": "",
 				"categoryName": "",
-				"goodsCategoryId": "50151513",
-				"goodsCategoryName": "Services",
+				"goodsCategoryId": row.gst_hsn_code,
+				"goodsCategoryName": row.hsn_code_description,
 				"exciseRate": "",
 				"exciseRule": "",
 				"exciseTax": "",
@@ -678,7 +667,7 @@ class EInvoice(Document):
 				"netAmount": str(self.netAmount),
 				"taxRate": str(self.sales_invoice.taxes[0].rate/100),
 				"taxAmount": str(self.taxAmount),
-				"grossAmount": str(self.grossAmount),
+				"grossAmount": str(self.gross_amount),
 				"exciseUnit": "101",
 				"exciseCurrency": "UGX",
 				"taxRateName": "123"
@@ -690,8 +679,8 @@ class EInvoice(Document):
 			"summary": {
 				"netAmount": str(self.netAmount),
 				"taxAmount": str(self.taxAmount),
-				"grossAmount": str(self.grossAmount),
-				"itemCount": str(self.itemCount),
+				"grossAmount": str(self.gross_amount),
+				"itemCount": str(self.item_count),
 				"modeCode": str(self.modeCode),
 				"remarks": "Test Askcc invoice.",
 				"qrCode": ""
