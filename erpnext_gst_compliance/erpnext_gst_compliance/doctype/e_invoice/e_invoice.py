@@ -189,7 +189,8 @@ class EInvoice(Document):
 			'city': 'City',
 			'pincode': 'Pincode',
 			'gst_state_number': 'State Code',
-			'email_id': 'Email Address'
+			'email_id': 'Email Address',
+			'phone': 'Phone'
 		}
 		for field, field_label in mandatory_field_label_map.items():
 			if not seller_address[field]:
@@ -206,6 +207,7 @@ class EInvoice(Document):
 		self.seller_address_line_1 = seller_address.address_line1
 		self.seller_address_line_2 = seller_address.address_line2
 		self.seller_state_code = seller_address.gst_state_number
+		self.seller_phone = seller_address.phone
 		# Added fields
 		self.seller_email = seller_address.email_id
 		# Use invoice name instead
@@ -226,6 +228,7 @@ class EInvoice(Document):
 			'pincode': 'Pincode',
 			'gst_state_number': 'State Code',
 			'email_id': 'Email Address',
+			'phone': 'Phone'
 		}
 		for field, field_label in mandatory_field_label_map.items():
 			if field == 'gstin':
@@ -259,7 +262,7 @@ class EInvoice(Document):
 		# self.buyerAddress = ""
 		# self.buyerEmail = buyer_address.email_id
 		# self.buyerMobilePhone = ""
-		self.buyerLinePhone = buyer_address.phone # Picked from customer phone field
+		self.buyer_phone = buyer_address.phone # Picked from customer phone field
 		# self.buyerPlaceOfBusi = buyer_address.address_line1
 		# self.buyerType = 0 # Same as supply type
 		self.buyerCitizenship = "" # Hardcode for now
@@ -562,7 +565,7 @@ class EInvoice(Document):
 				"legalName": self.seller_legal_name,
 				"businessName": self.seller_trade_name,
 				"address": self.seller_location,
-				"mobilePhone": "15501234567",
+				"mobilePhone": self.seller_phone,
 				"linePhone": "",
 				"emailAddress": self.seller_email,
 				"placeOfBusiness": self.seller_address_line_1,
@@ -602,7 +605,7 @@ class EInvoice(Document):
 				"buyerBusinessName": self.buyer_legal_name,
 				"buyerAddress": self.buyer_location,
 				"buyerEmail": self.buyer_email,
-				"buyerMobilePhone": self.buyerLinePhone,
+				"buyerMobilePhone": self.buyer_phone,
 				"buyerLinePhone": "",
 				"buyerPlaceOfBusi": self.buyer_address_line_1,
 				"buyerType": "0",
