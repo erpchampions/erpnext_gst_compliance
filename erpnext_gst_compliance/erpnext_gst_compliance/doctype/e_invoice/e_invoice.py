@@ -420,7 +420,7 @@ class EInvoice(Document):
 		gst_accounts = get_gst_accounts(self.company)
 		gst_accounts_list = [d for accounts in gst_accounts.values() for d in accounts if d]
 
-		for attr in ['gst_rate', 'cgst_amount',  'sgst_amount', 'igst_amount',
+		for attr in ['cgst_amount',  'sgst_amount', 'igst_amount',
 			'cess_rate', 'cess_amount', 'cess_nadv_amount', 'other_charges']:
 			item.update({ attr: 0 })
 
@@ -444,7 +444,7 @@ class EInvoice(Document):
 
 				for tax_type in ['igst', 'cgst', 'sgst']:
 					if t.account_head in gst_accounts[f'{tax_type}_account']:
-						item.gst_rate += item_tax_rate
+						# item.gst_rate += item_tax_rate
 						amt_fieldname = f'{tax_type}_amount'
 						item.update({
 							amt_fieldname: item.get(amt_fieldname, 0) + abs(item_tax_amount)
