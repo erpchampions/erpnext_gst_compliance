@@ -302,7 +302,7 @@ class EInvoice(Document):
 
 	def fetch_items_from_invoice(self):
 		item_taxes = loads(self.sales_invoice.taxes[0].item_wise_tax_detail)
-		for item in self.sales_invoice.items:
+		for i, item in enumerate(self.sales_invoice.items):
 			frappe.log_error(title="Sales Item Picking", message=item.as_dict())
 			if not item.gst_hsn_code:
 				frappe.throw(_('Row #{}: Item {} must have HSN code set to be able to generate e-invoice.')
