@@ -591,7 +591,7 @@ class EInvoice(Document):
 				"buyerMobilePhone": self.buyer_phone,
 				"buyerLinePhone": "",
 				"buyerPlaceOfBusi": self.buyer_address_line_1,
-				"buyerType": "0",
+				"buyerType": self.supply_type,
 				"buyerCitizenship": self.buyerCitizenship,
 				"buyerSector": self.buyerSector,
 				"buyerReferenceNo": self.buyerReferenceNo,
