@@ -328,7 +328,9 @@ class EInvoice(Document):
 				'tax': item_taxes[item.item_code][1],
 				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
 				'amount': item.amount,
-				'taxable_value': abs(item.amount)
+				'taxable_value': abs(item.amount),
+				'order_number': i,
+				'hsn_code_description': frappe.get_doc("GST HSN Code", item.gst_hsn_code).commodity_name
 			})
 			frappe.log_error(title="Einvoice Item before tax set", message=einvoice_item)
    
@@ -369,7 +371,9 @@ class EInvoice(Document):
 				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
 				'amount': item.amount,
 				'taxable_value': abs(item.amount),
-				'tax': round(item_taxes[item.item_code][1], 2)
+				'tax': round(item_taxes[item.item_code][1], 2),
+    			'order_number': i,
+				'hsn_code_description': frappe.get_doc("GST HSN Code", item.gst_hsn_code).commodity_name
 			})
 
 			self.set_item_tax_details(einvoice_item)
