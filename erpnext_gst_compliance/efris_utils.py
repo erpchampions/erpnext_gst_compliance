@@ -54,30 +54,32 @@ def encrypt_aes_ecb(content, key):
 
 def make_post(interface_code, content):
     data = fetch_data()
-    print("Data done:", data)
     aes_key, errorMsg = get_aes_key()
-    print("aes_key done:", aes_key)
     efris_log_info("aes_key done")
 
     if errorMsg != "":
         return False, errorMsg
     
     # Encrypt the content using AES-128-ECB
-    encrypted_content = encrypt_aes_ecb(content, aes_key)
-    b64_encrypted_content = base64.b64encode(encrypted_content).decode()
+    isAESEncrypted = encrypt_aes_ecb(aes_key, content)
 
-    print("Content to encrypt:", json.dumps(content))
-    print("Encrypted content:", b64_encrypted_content)
+    isAESEncrypted = base64.b64decode(isAESEncrypted)
+    newEncrypteddata=base64.b64encode(isAESEncrypted).decode("utf-8")
 
-    data["globalInfo"]["interfaceCode"] = interface_code
-    data["data"]["content"] = b64_encrypted_content
-    data["data"]["dataDescription"]["codeType"] = "1"
-    data["data"]["dataDescription"]["encryptCode"] = "2"
+    if isAESEncrypted:
 
+        # define data dictionary
+        data["globalInfo"]["deviceNo"] = deviceNo
+        data["globalInfo"]["tin"] = tin
+        data["globalInfo"]["brn"] = brn
+        data["globalInfo"]["interfaceCode"]=interfaceCode
+        data["data"]["content"]=base64.b64encode(isAESEncrypted).decode("utf-8")
+        data["data"]["dataDescription"]={"codeType": "1", "encryptCode": "2"}
+        
     private_key = get_private_key()
     # Sign the encrypted content
     # sign the data
-    signature = OpenSSL.crypto.sign(private_key, b64_encrypted_content, "sha1")
+    signature = OpenSSL.crypto.sign(private_key, newEncrypteddata, "sha1")
 
     if signature:
         # print the base64-encoded signature
@@ -101,17 +103,17 @@ def make_post(interface_code, content):
         
         respcontent = resp["data"]["content"]
         efris_response=decrypt_aes_ecb(aes_key,respcontent)
-        print("Decrypted EFRIS response:",efris_response)
+        print("\n\nDecrypted EFRIS response:",efris_response)
         efris_log_info("Decrypted EFRIS response: "+ efris_response)
         return True, efris_response
     except json.decoder.JSONDecodeError:
         print("Error: Could not decode JSON data")
         efris_log_info("Error: Could not decode JSON data")
-        exit(1)
+        return
     except:
         respcontentfailed = resp["returnStateInfo"]
-        print(respcontentfailed)
-        exit(1)
+        efris_log_info(respcontentfailed)
+        return
 
 
 
@@ -188,9 +190,8 @@ def get_aes_key():
     deviceNo = "1002170340_01"
     tin = "1002170340"
     brn = ""
-    #dataExchangeId = guidv4()
-    dataExchangeId = hashlib.sha256(str(uuid.uuid4()).encode('utf-8')).hexdigest()[:32]
-    
+    dataExchangeId = guidv4()
+
     data["globalInfo"]["interfaceCode"] = "T104"
     data["globalInfo"]["dataExchangeId"] = dataExchangeId
     data["globalInfo"]["deviceNo"] = deviceNo
@@ -201,7 +202,7 @@ def get_aes_key():
     resp = post_req(data)
     try:
         jsonresp = json.loads(resp)
-        efris_log_info("aes OK:" + resp)
+        efris_log_info("Aes OK:" + resp)
         errorMsg = jsonresp["returnStateInfo"]["returnMessage"]
         efris_log_info("aes returnStateInfoMsg:" + errorMsg)
         if errorMsg != "SUCCESS":
@@ -229,6 +230,18 @@ def get_aes_key():
     aesKey = cipher.decrypt(passowrdDes, None)
 
     return base64.b64decode(aesKey), ""
+
+def guidv4():
+    # generate a random UUID
+    my_uuid = uuid.uuid4()
+
+    # get the UUID as a string in standard format (32 hex characters separated by hyphens)
+    my_uuid_str = str(my_uuid)
+
+    # remove the hyphens to get a 32-character UUID string
+    my_uuid_str_32 = my_uuid_str.replace("-", "")
+
+    return my_uuid_str_32
 
 def post_req(data):
     efris_log_info("post_req()...starting")
