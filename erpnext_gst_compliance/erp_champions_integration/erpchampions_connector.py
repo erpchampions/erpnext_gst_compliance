@@ -12,6 +12,7 @@ from erpnext_gst_compliance.utils import log_exception
 from frappe.integrations.utils import make_post_request, make_get_request
 from frappe.utils.data import add_to_date, time_diff_in_seconds, now_datetime
 import erpnext_gst_compliance.efris_utils
+import json
 
 class ErpChampionsConnector:
 	def __init__(self, gstin):
@@ -126,10 +127,10 @@ class ErpChampionsConnector:
 		frappe.log_error(title="ErpChampionsConnector Einvoice", message=einvoice_json)
 
 		# response = self.make_request('post', url, headers, payload)
-		response = erpnext_gst_compliance.efris_utils.make_post("T109", einvoice_json)
-		frappe.log_error(str(response[1]))
+		status, response = erpnext_gst_compliance.efris_utils.make_post("T109", einvoice_json)
+		# frappe.log_error(str(response[1]))
   
-		sucess, errors = self.handle_irn_generation_response(response[1])
+		sucess, errors = self.handle_irn_generation_response(status, response)
 		return sucess, errors
 
 	@staticmethod
@@ -144,37 +145,45 @@ class ErpChampionsConnector:
 
 	@log_exception
 	# TODO: Change the handling to reflect what URA has
-	def handle_irn_generation_response(self, response):
-		if response.get('success'):
-			govt_response = response.get('result')
-			self.handle_successful_irn_generation(govt_response)
-		elif '2150' in response.get('message'):
-			govt_response = response.get('result')
-			self.handle_irn_already_generated(govt_response)
-		else:
-			errors = response.get('message')
-			errors = self.sanitize_error_message(errors)
-			return False, errors
+	def handle_irn_generation_response(self, status, response):
+
+		if status == True:
+
+			# Fix to remove characters that fail at 2174
+			response_letter_array = list(response)
+			del response_letter_array[2174]
+			del response_letter_array[2174]
+			response_letter_array = "".join(response_letter_array)
+			response = json.loads(response_letter_array)
+
+			self.handle_successful_irn_generation(response)
+		
+		# if response.get('success'):
+		# 	govt_response = response.get('result')
+		# 	self.handle_successful_irn_generation(govt_response)
+		# elif '2150' in response.get('message'):
+		# 	govt_response = response.get('result')
+		# 	self.handle_irn_already_generated(govt_response)
+		# else:
+		# 	errors = response.get('message')
+		# 	errors = self.sanitize_error_message(errors)
+		# 	return False, errors
 
 		return True, []
 
 	def handle_successful_irn_generation(self, response):
 		status = 'IRN Generated'
-		irn = response.get('Irn')
-		ack_no = response.get('AckNo')
-		ack_date = response.get('AckDt')
-		ewaybill = response.get('EwbNo')
-		ewaybill_validity = response.get('EwbValidTill')
-		qrcode = self.generate_qrcode(response.get('SignedQRCode'))
+
+		# URA returned fields
+		irn = response["basicInformation"]["invoiceId"]
+		antifake_code = response["basicInformation"]["antifakeCode"]
+		qrcode = self.generate_qrcode(response["summary"]["qrCode"])
 
 		self.einvoice.update({
 			'irn': irn,
+			'antifake_code': antifake_code,
 			'status': status,
-			'ack_no': ack_no,
-			'ack_date': ack_date,
-			'ewaybill': ewaybill,
 			'qrcode_path': qrcode,
-			'ewaybill_validity': ewaybill_validity
 		})
 		self.einvoice.flags.ignore_permissions = 1
 		self.einvoice.submit()
