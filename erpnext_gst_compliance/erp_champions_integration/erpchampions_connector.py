@@ -129,6 +129,8 @@ class ErpChampionsConnector:
 		# response = self.make_request('post', url, headers, payload)
 		status, response = erpnext_gst_compliance.efris_utils.make_post("T109", einvoice_json)
 		#frappe.log_error(str(response[1]))
+		erpnext_gst_compliance.efris_utils.efris_log_info("response:");
+		erpnext_gst_compliance.efris_utils.efris_log_info(response);
   
 		sucess, errors = self.handle_irn_generation_response(status, response)
 		return sucess, errors
@@ -169,7 +171,10 @@ class ErpChampionsConnector:
 		# 	errors = self.sanitize_error_message(errors)
 		# 	return False, errors
 
-		return True, []
+			return True, []
+		else:
+			# throw back error to controller (will show error message)
+			return False, response
 
 	def handle_successful_irn_generation(self, response):
 		status = 'IRN Generated'
