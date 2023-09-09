@@ -1,5 +1,5 @@
-#import frappe
-#from frappe import _
+import frappe
+from frappe import _
 import random
 import hashlib
 import uuid
@@ -44,80 +44,103 @@ def efris_log_warning(message):
 def efris_log_error(message):
     logging.error(message)
 
-def encrypt_aes_ecb(content, key):
-    cipher = Cipher(algorithms.AES(key), modes.ECB(), backend=default_backend())
-    encryptor = cipher.encryptor()
-    padder = padding.PKCS7(128).padder()
-    padded_data = padder.update(json.dumps(content).encode()) + padder.finalize()
-    encrypted_content = encryptor.update(padded_data) + encryptor.finalize()
-    return encrypted_content
+def encrypt_aes_ecb(data, key):
+    # Calculate the number of padding bytes required
+    padding_length = 16 - (len(data) % 16)
 
-def make_post(interface_code, content):
+    # Pad the data with the required number of bytes
+    padding = bytes([padding_length] * padding_length)
+    padded_data = data + padding.decode()
+
+    cipher = AES.new(key, AES.MODE_ECB)
+    ct_bytes = cipher.encrypt(padded_data.encode("utf-8"))
+    ct = base64.b64encode(ct_bytes).decode("utf-8")
+    return ct
+
+def make_post(interfaceCode, content):
     data = fetch_data()
     print("Data done:", data)
-    aes_key, errorMsg = get_aes_key()
+    efris_log_info("Before  get_AES_key()")
+    aes_key = get_AES_key()
     print("aes_key done:", aes_key)
-    efris_log_info("aes_key done")
+    efris_log_info("get_AES_key done")
 
-    if errorMsg != "":
-        return False, errorMsg
-    
-    # Encrypt the content using AES-128-ECB
-    encrypted_content = encrypt_aes_ecb(content, aes_key)
-    b64_encrypted_content = base64.b64encode(encrypted_content).decode()
+    deviceNo = "1002170340_01"
+    tin="1002170340"
+    brn=""
 
-    print("Content to encrypt:", json.dumps(content))
-    print("Encrypted content:", b64_encrypted_content)
 
-    data["globalInfo"]["interfaceCode"] = interface_code
-    data["data"]["content"] = b64_encrypted_content
-    data["data"]["dataDescription"]["codeType"] = "1"
-    data["data"]["dataDescription"]["encryptCode"] = "2"
+    json_content = json.dumps(content)
+    efris_log_info("json_content OK")
 
-    private_key = get_private_key()
-    # Sign the encrypted content
-    # sign the data
-    signature = OpenSSL.crypto.sign(private_key, b64_encrypted_content, "sha1")
+    isAESEncrypted = encrypt_aes_ecb(json_content,aes_key)
+    efris_log_info("isAESEncrypted OK")
 
-    if signature:
-        # print the base64-encoded signature
-        b4signature = base64.b64encode(signature).decode()
+    isAESEncrypted = base64.b64decode(isAESEncrypted)
+    newEncrypteddata=base64.b64encode(isAESEncrypted).decode("utf-8")
 
-        # add signature to data
-        data["data"]["signature"] = b4signature
+    if isAESEncrypted:
+        efris_log_info("isAESEncrypted OK")
+        # define data dictionary
+        data["globalInfo"]["deviceNo"] = deviceNo
+        data["globalInfo"]["tin"] = tin
+        data["globalInfo"]["brn"] = brn
+        data["globalInfo"]["interfaceCode"]=interfaceCode
+        data["data"]["content"]=base64.b64encode(isAESEncrypted).decode("utf-8")
+        data["data"]["dataDescription"]={"codeType": "1", "encryptCode": "2"}
+        # data = {
+        #     "globalInfo": {"interfaceCode": interfaceCode, "deviceNo": deviceNo},
+        #     "data": {
+        #         "content": base64.b64encode(isAESEncrypted).decode("utf-8"),
+        #         "dataDescription": {"codeType": "1", "encryptCode": "2"},
+        #     },
+        # }
 
+        private_key = get_private_key()
+        efris_log_info("get_private_key OK")
+
+        # sign the data
+        signature = OpenSSL.crypto.sign(private_key, newEncrypteddata, "sha1")
+
+        if signature:
+            # print the base64-encoded signature
+
+            b4signature = base64.b64encode(signature).decode()
+
+            # add signature to data
+            data["data"]["signature"] = b4signature
     print(data)
-    efris_log_info(data)
     data = json.dumps(data).replace("'", '"').replace("\n", "").replace("\r", "")
-    efris_log_info("Make Post - post_req() with:" + data)
-
+    efris_log_info("Request data:\n")
+    efris_log_info(data)
     json_resp = post_req(data)
+     
+
     try:
         resp = json.loads(json_resp)
+        print("Server response")
+        print(resp)
+        
         errorMsg = resp["returnStateInfo"]["returnMessage"]
         efris_log_info("returnStateInfoMsg:" + errorMsg)
         if errorMsg != "SUCCESS":
-            return False, errorMsg
+            return False, errorMsg       
         
         respcontent = resp["data"]["content"]
         efris_response=decrypt_aes_ecb(aes_key,respcontent)
-        print("Decrypted EFRIS response:",efris_response)
-        efris_log_info("Decrypted EFRIS response: "+ efris_response)
-        return True, efris_response
-    except json.decoder.JSONDecodeError:
-        print("Error: Could not decode JSON data")
-        efris_log_info("Error: Could not decode JSON data")
-        exit(1)
+        print(efris_response)
+        resp_json = json.loads(efris_response)
+        efris_log_info("Decrypted JSON Data:")
+        efris_log_info(resp_json)
+        return True, resp_json
+
     except:
         respcontentfailed = resp["returnStateInfo"]
         print(respcontentfailed)
-        exit(1)
+ 
 
+def decrypt_aes_ecb(aeskey, ciphertext):
 
-
-def decrypt_aes_ecb(ciphertext,aeskey):
-    print("Encrypted data:", ciphertext)
-    print("Decryption key:", aeskey)
     # Decode the ciphertext from base64
     ciphertext = base64.b64decode(ciphertext)
 
@@ -125,13 +148,14 @@ def decrypt_aes_ecb(ciphertext,aeskey):
     cipher = AES.new(aeskey, AES.MODE_ECB)
 
     # Decrypt the ciphertext
-    plaintext = cipher.decrypt(ciphertext).decode()
-    
-    print("Decrypted data:", plaintext)
-    
-    return plaintext        
+    plaintext_with_padding = cipher.decrypt(ciphertext).decode()
 
+    # Remove the padding
+    padding_length = ord(plaintext_with_padding[-1])
+    plaintext = plaintext_with_padding[:-padding_length]
 
+    return plaintext
+    
 def get_ug_time_str():
     ug_time_zone = "Africa/Kampala"
     now = datetime.now()#.strftime("%Y-%m-%d %H:%M:%S")
@@ -181,16 +205,14 @@ def fetch_data():
         }
     }
 
-def get_aes_key():
-    errorMsg = ""
+def get_AES_key():
     # GET AES KEY
     data = fetch_data()
     deviceNo = "1002170340_01"
     tin = "1002170340"
     brn = ""
-    #dataExchangeId = guidv4()
-    dataExchangeId = hashlib.sha256(str(uuid.uuid4()).encode('utf-8')).hexdigest()[:32]
-    
+    dataExchangeId = guidv4()
+
     data["globalInfo"]["interfaceCode"] = "T104"
     data["globalInfo"]["dataExchangeId"] = dataExchangeId
     data["globalInfo"]["deviceNo"] = deviceNo
@@ -199,36 +221,42 @@ def get_aes_key():
 
     data = json.dumps(data).replace("'", '"').replace("\n", "").replace("\r", "")
     resp = post_req(data)
-    try:
-        jsonresp = json.loads(resp)
-        efris_log_info("aes OK:" + resp)
-        errorMsg = jsonresp["returnStateInfo"]["returnMessage"]
-        efris_log_info("aes returnStateInfoMsg:" + errorMsg)
-        if errorMsg != "SUCCESS":
-            return "", errorMsg
-
-
-    except json.decoder.JSONDecodeError:
-        print("Error: Could not decode JSON data")
-        efris_log_info("aes error ")
-        return "", "json.decoder.JSONDecodeError"
-
+    efris_log_info("..get_AES_key()*1")
+    jsonresp = json.loads(resp)
+    efris_log_info("..get_AES_key()*2")
     b64content = jsonresp["data"]["content"]
     content = json.loads(base64.b64decode(b64content).decode("utf-8"))
+    efris_log_info("..get_AES_key()*3")
 
     b64passowrdDes = content["passowrdDes"]
     passowrdDes = base64.b64decode(b64passowrdDes)
+    efris_log_info("..get_AES_key()*4")
 
     # read private key
     privKey = get_private_key()
-   
+
+    efris_log_info("..get_AES_key()*5")
+
     # convert the pkey object to a byte string
     pkey_str = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, privKey)
 
     cipher = PKCS1_v1_5.new(RSA.import_key(pkey_str))
     aesKey = cipher.decrypt(passowrdDes, None)
+    
+    efris_log_info("..before reurn get_AES_key()")
+    return base64.b64decode(aesKey)
 
-    return base64.b64decode(aesKey), ""
+def guidv4():
+    # generate a random UUID
+    my_uuid = uuid.uuid4()
+
+    # get the UUID as a string in standard format (32 hex characters separated by hyphens)
+    my_uuid_str = str(my_uuid)
+
+    # remove the hyphens to get a 32-character UUID string
+    my_uuid_str_32 = my_uuid_str.replace("-", "")
+
+    return my_uuid_str_32
 
 def post_req(data):
     efris_log_info("post_req()...starting")
@@ -245,7 +273,7 @@ def post_reqs(data, url, headers):
     print(response.text)
     return response.text
 
-def get_private_keys():
+def get_private_key():
     # Get the private files directory for the current site
     private_files_path = frappe.get_site_path('private', 'files')
 
@@ -261,19 +289,6 @@ def get_private_keys():
     pkey = pfx.get_privatekey()
 
     efris_log_info("get_private_key()...done")
-    return pkey
-
-def get_private_key():
-    # load the PKCS#12 file
-    key_path = "/home/frappe/frappe-bench/sites/efristest.erpchampions.org/private/files/erpnext.pfx"    
-    with open(key_path, "rb") as f:
-        pfx_data = f.read()
-
-    # extract the private key and certificate from the PKCS#12 file
-    pfx = OpenSSL.crypto.load_pkcs12(pfx_data, b"123456")
-    pkey = pfx.get_privatekey()
-
-    # do something with the private key and certificate
     return pkey
 
 def safe_load_json(message):

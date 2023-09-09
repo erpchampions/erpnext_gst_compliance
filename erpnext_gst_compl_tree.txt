@@ -1,0 +1,235 @@
+.
+├── erpnext_gst_compliance
+│   ├── adequare_integration
+│   │   ├── adequare_connector.py
+│   │   ├── doctype
+│   │   │   ├── adequare_credential
+│   │   │   │   ├── adequare_credential.json
+│   │   │   │   ├── adequare_credential.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── __pycache__
+│   │   │   │       ├── adequare_credential.cpython-310.pyc
+│   │   │   │       └── __init__.cpython-310.pyc
+│   │   │   ├── adequare_settings
+│   │   │   │   ├── adequare_settings.js
+│   │   │   │   ├── adequare_settings.json
+│   │   │   │   ├── adequare_settings.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── __pycache__
+│   │   │   │   │   ├── adequare_settings.cpython-310.pyc
+│   │   │   │   │   └── __init__.cpython-310.pyc
+│   │   │   │   └── test_adequare_settings.py
+│   │   │   ├── __init__.py
+│   │   │   └── __pycache__
+│   │   │       └── __init__.cpython-310.pyc
+│   │   ├── __init__.py
+│   │   └── __pycache__
+│   │       ├── adequare_connector.cpython-310.pyc
+│   │       └── __init__.cpython-310.pyc
+│   ├── cleartax_integration
+│   │   ├── cleartax_connector.py
+│   │   ├── doctype
+│   │   │   ├── cleartax_credential
+│   │   │   │   ├── cleartax_credential.json
+│   │   │   │   ├── cleartax_credential.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── __pycache__
+│   │   │   │       ├── cleartax_credential.cpython-310.pyc
+│   │   │   │       └── __init__.cpython-310.pyc
+│   │   │   ├── cleartax_settings
+│   │   │   │   ├── cleartax_settings.js
+│   │   │   │   ├── cleartax_settings.json
+│   │   │   │   ├── cleartax_settings.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── __pycache__
+│   │   │   │   │   ├── cleartax_settings.cpython-310.pyc
+│   │   │   │   │   └── __init__.cpython-310.pyc
+│   │   │   │   └── test_cleartax_settings.py
+│   │   │   ├── __init__.py
+│   │   │   └── __pycache__
+│   │   │       └── __init__.cpython-310.pyc
+│   │   ├── __init__.py
+│   │   └── __pycache__
+│   │       ├── cleartax_connector.cpython-310.pyc
+│   │       └── __init__.cpython-310.pyc
+│   ├── config
+│   │   ├── desktop.py
+│   │   ├── docs.py
+│   │   └── __init__.py
+│   ├── erpnext_gst_compliance
+│   │   ├── custom
+│   │   │   ├── address.json
+│   │   │   ├── sales_invoice_item.json
+│   │   │   └── sales_invoice.json
+│   │   ├── doctype
+│   │   │   ├── e_invoice
+│   │   │   │   ├── e_invoice.js
+│   │   │   │   ├── e_invoice.json
+│   │   │   │   ├── e_invoice_list.js
+│   │   │   │   ├── e_invoice.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── __pycache__
+│   │   │   │   │   ├── e_invoice.cpython-310.pyc
+│   │   │   │   │   └── __init__.cpython-310.pyc
+│   │   │   │   └── test_e_invoice.py
+│   │   │   ├── e_invoice_item
+│   │   │   │   ├── e_invoice_item.json
+│   │   │   │   ├── e_invoice_item.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── __pycache__
+│   │   │   │       ├── e_invoice_item.cpython-310.pyc
+│   │   │   │       └── __init__.cpython-310.pyc
+│   │   │   ├── e_invoice_request_log
+│   │   │   │   ├── e_invoice_request_log.js
+│   │   │   │   ├── e_invoice_request_log.json
+│   │   │   │   ├── e_invoice_request_log.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── __pycache__
+│   │   │   │   │   ├── e_invoice_request_log.cpython-310.pyc
+│   │   │   │   │   └── __init__.cpython-310.pyc
+│   │   │   │   └── test_e_invoice_request_log.py
+│   │   │   ├── e_invoicing_settings
+│   │   │   │   ├── e_invoicing_settings.js
+│   │   │   │   ├── e_invoicing_settings.json
+│   │   │   │   ├── e_invoicing_settings.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── __pycache__
+│   │   │   │   │   ├── e_invoicing_settings.cpython-310.pyc
+│   │   │   │   │   └── __init__.cpython-310.pyc
+│   │   │   │   └── test_e_invoicing_settings.py
+│   │   │   ├── gst_account
+│   │   │   │   ├── gst_account.json
+│   │   │   │   ├── gst_account.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── __pycache__
+│   │   │   │       ├── gst_account.cpython-310.pyc
+│   │   │   │       └── __init__.cpython-310.pyc
+│   │   │   ├── gst_hsn_code
+│   │   │   │   ├── gst_hsn_code.js
+│   │   │   │   ├── gst_hsn_code.json
+│   │   │   │   ├── gst_hsn_code.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── __pycache__
+│   │   │   │   │   ├── gst_hsn_code.cpython-310.pyc
+│   │   │   │   │   └── __init__.cpython-310.pyc
+│   │   │   │   └── test_gst_hsn_code.py
+│   │   │   ├── gst_settings
+│   │   │   │   ├── gst_settings.js
+│   │   │   │   ├── gst_settings.json
+│   │   │   │   ├── gst_settings.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── __pycache__
+│   │   │   │   │   ├── gst_settings.cpython-310.pyc
+│   │   │   │   │   └── __init__.cpython-310.pyc
+│   │   │   │   └── test_gst_settings.py
+│   │   │   ├── __init__.py
+│   │   │   └── __pycache__
+│   │   │       └── __init__.cpython-310.pyc
+│   │   ├── e_invoicing_controller.py
+│   │   ├── __init__.py
+│   │   ├── print_format
+│   │   │   ├── gst_e_invoice
+│   │   │   │   ├── gst_e_invoice.html
+│   │   │   │   ├── gst_e_invoice.json
+│   │   │   │   └── __init__.py
+│   │   │   └── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── e_invoicing_controller.cpython-310.pyc
+│   │   │   ├── __init__.cpython-310.pyc
+│   │   │   └── setup.cpython-310.pyc
+│   │   ├── report
+│   │   │   ├── e_invoice_summary
+│   │   │   │   ├── e_invoice_summary.js
+│   │   │   │   ├── e_invoice_summary.json
+│   │   │   │   ├── e_invoice_summary.py
+│   │   │   │   └── __init__.py
+│   │   │   └── __init__.py
+│   │   └── setup.py
+│   ├── hooks.py
+│   ├── __init__.py
+│   ├── modules.txt
+│   ├── patches
+│   │   ├── copy_adequare_credentials.py
+│   │   └── setup_einvoice_fields.py
+│   ├── patches.txt
+│   ├── public
+│   │   └── js
+│   │       └── sales_invoice.js
+│   ├── __pycache__
+│   │   ├── hooks.cpython-310.pyc
+│   │   ├── __init__.cpython-310.pyc
+│   │   └── utils.cpython-310.pyc
+│   ├── templates
+│   │   ├── __init__.py
+│   │   └── pages
+│   │       └── __init__.py
+│   ├── utils.py
+│   └── www
+│       └── __init__.py
+├── erpnext_gst_compliance.egg-info
+│   ├── dependency_links.txt
+│   ├── not-zip-safe
+│   ├── PKG-INFO
+│   ├── requires.txt
+│   ├── SOURCES.txt
+│   └── top_level.txt
+├── erpnext_gst_compl_tree.txt
+├── .flake8
+├── .git
+│   ├── branches
+│   ├── config
+│   ├── description
+│   ├── HEAD
+│   ├── hooks
+│   │   ├── applypatch-msg.sample
+│   │   ├── commit-msg.sample
+│   │   ├── fsmonitor-watchman.sample
+│   │   ├── post-update.sample
+│   │   ├── pre-applypatch.sample
+│   │   ├── pre-commit.sample
+│   │   ├── pre-merge-commit.sample
+│   │   ├── prepare-commit-msg.sample
+│   │   ├── pre-push.sample
+│   │   ├── pre-rebase.sample
+│   │   ├── pre-receive.sample
+│   │   ├── push-to-checkout.sample
+│   │   └── update.sample
+│   ├── index
+│   ├── info
+│   │   └── exclude
+│   ├── logs
+│   │   ├── HEAD
+│   │   └── refs
+│   │       ├── heads
+│   │       │   └── master
+│   │       └── remotes
+│   │           └── upstream
+│   │               └── HEAD
+│   ├── objects
+│   │   ├── info
+│   │   └── pack
+│   │       ├── pack-52481b71a258e5992ffcf2207d7d73adb5f29372.idx
+│   │       └── pack-52481b71a258e5992ffcf2207d7d73adb5f29372.pack
+│   ├── packed-refs
+│   ├── refs
+│   │   ├── heads
+│   │   │   └── master
+│   │   ├── remotes
+│   │   │   └── upstream
+│   │   │       └── HEAD
+│   │   └── tags
+│   └── shallow
+├── .github
+│   ├── helper
+│   │   ├── install.sh
+│   │   └── site_config.json
+│   └── workflows
+│       └── ci.yml
+├── .gitignore
+├── license.txt
+├── MANIFEST.in
+├── README.md
+├── requirements.txt
+└── setup.py
+
+69 directories, 163 files
