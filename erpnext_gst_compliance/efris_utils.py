@@ -44,6 +44,90 @@ def efris_log_warning(message):
 def efris_log_error(message):
     logging.error(message)
 
+
+def make_post(interfaceCode, content):
+    try:
+        # Fetch data and log the result
+        data = fetch_data()
+        efris_log_info("Data fetched successfully")
+
+        # Get AES key and log the result
+        aes_key = get_AES_key()
+        efris_log_info("AES key fetched successfully")
+
+        deviceNo = "1002170340_01"
+        tin = "1002170340"
+        brn = ""
+
+        # Convert content to JSON and log the result
+        json_content = json.dumps(content)
+        efris_log_info("Content converted to JSON successfully")
+
+        # Encrypt content with AES and log the result
+        isAESEncrypted = encrypt_aes_ecb(json_content, aes_key)
+        efris_log_info("Content encrypted with AES successfully")
+
+        # Decode and encode the encrypted data
+        isAESEncrypted = base64.b64decode(isAESEncrypted)
+        newEncrypteddata = base64.b64encode(isAESEncrypted).decode("utf-8")
+
+        if isAESEncrypted:
+            efris_log_info("AES encryption successful")
+            # Define data dictionary
+            data["globalInfo"]["deviceNo"] = deviceNo
+            data["globalInfo"]["tin"] = tin
+            data["globalInfo"]["brn"] = brn
+            data["globalInfo"]["interfaceCode"] = interfaceCode
+            data["data"]["content"] = base64.b64encode(isAESEncrypted).decode("utf-8")
+            data["data"]["dataDescription"] = {"codeType": "1", "encryptCode": "2"}
+
+            # Get private key and log the result
+            private_key = get_private_key()
+            efris_log_info("Private key fetched successfully")
+
+            # Sign the data and log the result
+            signature = OpenSSL.crypto.sign(private_key, newEncrypteddata, "sha1")
+
+            if signature:
+                # Print the base64-encoded signature
+                b4signature = base64.b64encode(signature).decode()
+
+                # Add signature to data
+                data["data"]["signature"] = b4signature
+
+        # Convert data to JSON and log the result
+        data_json = json.dumps(data).replace("'", '"').replace("\n", "").replace("\r", "")
+        efris_log_info("Request data converted to JSON successfully")
+        efris_log_info("Request data:\n")
+        efris_log_info(data_json)
+
+        # Make the POST request and log the result
+        json_resp = post_req(data_json)
+
+        # Parse the JSON response
+        resp = json.loads(json_resp)
+        efris_log_info("Server response successfully parsed")
+
+        # Check for error message in the response
+        errorMsg = resp["returnStateInfo"]["returnMessage"]
+        efris_log_info("returnStateInfoMsg: " + errorMsg)
+        if errorMsg != "SUCCESS":
+            return False, errorMsg
+
+        # Decrypt and parse the response content
+        respcontent = resp["data"]["content"]
+        efris_response = decrypt_aes_ecb(aes_key, respcontent)
+        efris_log_info("Response content decrypted successfully")
+        resp_json = json.loads(efris_response)
+        efris_log_info("Decrypted JSON Data:")
+        efris_log_info(resp_json)
+        return True, resp_json
+
+    except Exception as e:
+        # Handle exceptions and log the error
+        efris_log_error("An error occurred: " + str(e))
+        return False, str(e)
+
 def encrypt_aes_ecb(data, key):
     # Calculate the number of padding bytes required
     padding_length = 16 - (len(data) % 16)
@@ -56,88 +140,6 @@ def encrypt_aes_ecb(data, key):
     ct_bytes = cipher.encrypt(padded_data.encode("utf-8"))
     ct = base64.b64encode(ct_bytes).decode("utf-8")
     return ct
-
-def make_post(interfaceCode, content):
-    data = fetch_data()
-    print("Data done:", data)
-    efris_log_info("Before  get_AES_key()")
-    aes_key = get_AES_key()
-    print("aes_key done:", aes_key)
-    efris_log_info("get_AES_key done")
-
-    deviceNo = "1002170340_01"
-    tin="1002170340"
-    brn=""
-
-
-    json_content = json.dumps(content)
-    efris_log_info("json_content OK")
-
-    isAESEncrypted = encrypt_aes_ecb(json_content,aes_key)
-    efris_log_info("isAESEncrypted OK")
-
-    isAESEncrypted = base64.b64decode(isAESEncrypted)
-    newEncrypteddata=base64.b64encode(isAESEncrypted).decode("utf-8")
-
-    if isAESEncrypted:
-        efris_log_info("isAESEncrypted OK")
-        # define data dictionary
-        data["globalInfo"]["deviceNo"] = deviceNo
-        data["globalInfo"]["tin"] = tin
-        data["globalInfo"]["brn"] = brn
-        data["globalInfo"]["interfaceCode"]=interfaceCode
-        data["data"]["content"]=base64.b64encode(isAESEncrypted).decode("utf-8")
-        data["data"]["dataDescription"]={"codeType": "1", "encryptCode": "2"}
-        # data = {
-        #     "globalInfo": {"interfaceCode": interfaceCode, "deviceNo": deviceNo},
-        #     "data": {
-        #         "content": base64.b64encode(isAESEncrypted).decode("utf-8"),
-        #         "dataDescription": {"codeType": "1", "encryptCode": "2"},
-        #     },
-        # }
-
-        private_key = get_private_key()
-        efris_log_info("get_private_key OK")
-
-        # sign the data
-        signature = OpenSSL.crypto.sign(private_key, newEncrypteddata, "sha1")
-
-        if signature:
-            # print the base64-encoded signature
-
-            b4signature = base64.b64encode(signature).decode()
-
-            # add signature to data
-            data["data"]["signature"] = b4signature
-    print(data)
-    data = json.dumps(data).replace("'", '"').replace("\n", "").replace("\r", "")
-    efris_log_info("Request data:\n")
-    efris_log_info(data)
-    json_resp = post_req(data)
-     
-
-    try:
-        resp = json.loads(json_resp)
-        print("Server response")
-        print(resp)
-        
-        errorMsg = resp["returnStateInfo"]["returnMessage"]
-        efris_log_info("returnStateInfoMsg:" + errorMsg)
-        if errorMsg != "SUCCESS":
-            return False, errorMsg       
-        
-        respcontent = resp["data"]["content"]
-        efris_response=decrypt_aes_ecb(aes_key,respcontent)
-        print(efris_response)
-        resp_json = json.loads(efris_response)
-        efris_log_info("Decrypted JSON Data:")
-        efris_log_info(resp_json)
-        return True, resp_json
-
-    except:
-        respcontentfailed = resp["returnStateInfo"]
-        print(respcontentfailed)
- 
 
 def decrypt_aes_ecb(aeskey, ciphertext):
 
@@ -206,45 +208,63 @@ def fetch_data():
     }
 
 def get_AES_key():
-    # GET AES KEY
-    data = fetch_data()
-    deviceNo = "1002170340_01"
-    tin = "1002170340"
-    brn = ""
-    dataExchangeId = guidv4()
+    try:
+        # Fetch data and log the result
+        data = fetch_data()
+        efris_log_info("Data fetched successfully")
 
-    data["globalInfo"]["interfaceCode"] = "T104"
-    data["globalInfo"]["dataExchangeId"] = dataExchangeId
-    data["globalInfo"]["deviceNo"] = deviceNo
-    data["globalInfo"]["tin"] = tin
-    data["globalInfo"]["brn"] = brn
+        deviceNo = "1002170340_01"
+        tin = "1002170340"
+        brn = ""
+        dataExchangeId = guidv4()
 
-    data = json.dumps(data).replace("'", '"').replace("\n", "").replace("\r", "")
-    resp = post_req(data)
-    efris_log_info("..get_AES_key()*1")
-    jsonresp = json.loads(resp)
-    efris_log_info("..get_AES_key()*2")
-    b64content = jsonresp["data"]["content"]
-    content = json.loads(base64.b64decode(b64content).decode("utf-8"))
-    efris_log_info("..get_AES_key()*3")
+        # Update globalInfo dictionary
+        data["globalInfo"]["interfaceCode"] = "T104"
+        data["globalInfo"]["dataExchangeId"] = dataExchangeId
+        data["globalInfo"]["deviceNo"] = deviceNo
+        data["globalInfo"]["tin"] = tin
+        data["globalInfo"]["brn"] = brn
 
-    b64passowrdDes = content["passowrdDes"]
-    passowrdDes = base64.b64decode(b64passowrdDes)
-    efris_log_info("..get_AES_key()*4")
+        # Convert data to JSON and log the result
+        data_json = json.dumps(data).replace("'", '"').replace("\n", "").replace("\r", "")
+        efris_log_info("Request data converted to JSON successfully")
 
-    # read private key
-    privKey = get_private_key()
+        # Make the POST request and log the result
+        resp = post_req(data_json)
+        efris_log_info("POST request to fetch AES key successful")
 
-    efris_log_info("..get_AES_key()*5")
+        # Parse the JSON response
+        jsonresp = json.loads(resp)
+        efris_log_info("Response JSON parsed successfully")
 
-    # convert the pkey object to a byte string
-    pkey_str = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, privKey)
+        # Extract content from the response
+        b64content = jsonresp["data"]["content"]
+        content = json.loads(base64.b64decode(b64content).decode("utf-8"))
+        efris_log_info("Content extracted from response")
 
-    cipher = PKCS1_v1_5.new(RSA.import_key(pkey_str))
-    aesKey = cipher.decrypt(passowrdDes, None)
-    
-    efris_log_info("..before reurn get_AES_key()")
-    return base64.b64decode(aesKey)
+        # Decode passwordDes and decrypt AES key
+        b64passwordDes = content["passowrdDes"]
+        passwordDes = base64.b64decode(b64passwordDes)
+        efris_log_info("PasswordDes decoded successfully")
+
+        # Read private key and log the result
+        privKey = get_private_key()
+        efris_log_info("Private key fetched successfully")
+
+        # Convert the private key object to a byte string
+        pkey_str = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, privKey)
+
+        # Decrypt AES key using RSA private key
+        cipher = PKCS1_v1_5.new(RSA.import_key(pkey_str))
+        aesKey = cipher.decrypt(passwordDes, None)
+        
+        efris_log_info("AES key decrypted successfully")
+        return base64.b64decode(aesKey)
+
+    except Exception as e:
+        # Handle exceptions and log the error
+        efris_log_error("An error occurred in get_AES_key(): " + str(e))
+        return None  # You may want to return an appropriate value or raise an exception here
 
 def guidv4():
     # generate a random UUID
@@ -299,347 +319,8 @@ def safe_load_json(message):
 
 	return json_message
 
-def send_efris(sales_invoice):
-    efris_log_info("send_efris starts..")
-    #json_sales_inv = safe_load_json(sales_invoice)
-    #frappe.msgprint(json_sales_inv)
-    #efris_log_info("sales invoice:" + str(json_sales_inv))
-    efris_inv_data = fetch_efris_data(sales_invoice)
-    success, resultMsg = False, ""
-
-    json_string = "{}"  # an empty JSON object
-
-    try:
-        data = efris_inv_data
-        if not data:  # Checks if the parsed JSON data is "empty" like {}, [], "", 0, False, None
-            resultMsg = "Oops! The JSON string efris_inv_data is empty or represents a non-value."            
-            efris_log_info(resultMsg)
-        else:
-            #"Great! The JSON string efris_inv_data is not empty."
-            print(str(efris_inv_data))
-            frappe.msgprint(str(efris_inv_data))
-            efris_log_info("efris_inv_data:" + str(efris_inv_data))
-            resp_content = make_post("T109", efris_inv_data)
-            resultMsg = "EFRIS response: " + str(resp_content)
-            efris_log_info(resultMsg)
-            success = True            
-    except json.JSONDecodeError:
-        resultMsg = "Oops! Invalid JSON string."
-        print(resultMsg)
-        efris_log_info(resultMsg)
-    frappe.msgprint(resultMsg)
-    return success, resultMsg
-
 def format_amount(amount):
     amt_float = float(amount)    
     amt_string = "{:.2f}"
     return amt_string.format(amt_float)
 
-def fetch_efris_data(sales_inv):
-    if sales_inv is None:
-        print("Oops! sales_inv is NONE!")
-        efris_log_info("Oops! sales_inv is NONE!")
-        frappe.msgprint("Oops! sales_inv is NONE!")
-        return ""
-    efris_log_info("fetch_efris_data started with:" + str(sales_inv))
-
-    efris_invoice_content = fetch_test_invoice_goods_no_excise()
-    efris_invoice_content["basicInformation"]["issuedDate"] = sales_inv["posting_date"]
-    efris_invoice_content["basicInformation"]["operator"] = sales_inv["modified_by"]
-    
-    item_count = 0
-    efris_invoice_content["goodsDetails"] = []
-    
-    #total_amounts_by_item_code = defaultdict(float)
-    total_quantities_by_item_code = {}
-    efris_log_info("..about to loop items")
-    for item in sales_inv["items"]:
-        if item['item_code'] in total_quantities_by_item_code:
-            total_quantities_by_item_code[item['item_code']] += item['qty']
-        else:
-            total_quantities_by_item_code[item['item_code']] = item['qty']
-
-    for item in sales_inv["items"]:
-        print("Nice! Got an item...")
-        efris_log_info("Nice! Got an item...")
-        #frappe.msgprint("Nice! Got an item...")
-        item_count = item_count + 1
-        item_code = item["item_code"]
-        item_name = item["item_name"]
-        qty = item["qty"]
-        rate = format_amount(item["rate"])        
-
-        # Get item-wise tax details
-        tax_details_str = sales_inv["taxes"][0]["item_wise_tax_detail"]
-        tax_details = json.loads(tax_details_str) if tax_details_str else {}
-
-        tax_rate, tax_amount = tax_details.get(item_code, [0.0, 0.0])
-        #total_item_amount = tax_amount + item["net_amount"]
-        total_item_amount = item["amount"]
-        tax_rate = tax_rate / 100
-        item_tax_amount = tax_amount / total_quantities_by_item_code[item["item_code"]] * qty
-
-        #frappe.msgprint("tax_rate,tax_amount,total_item_amount:" + str(tax_rate) + " , " + str(tax_amount) + " , " + str(total_item_amount))
-        
-        new_item = {
-            "item": item_name,
-            "itemCode": item_code,
-            "qty": qty,
-            "unitOfMeasure": "101",
-            "unitPrice": rate,
-            "total": format_amount(total_item_amount),  # Use item amount as the total
-            "taxRate": format_amount(tax_rate),
-            "tax": format_amount(item_tax_amount),
-            "discountTotal": "",
-            "discountTaxRate": "0.00",
-            "orderNumber": item_count - 1,
-            "discountFlag": "2",
-            "deemedFlag": "2",
-            "exciseFlag": "2",
-            "categoryId": "",
-            "categoryName": "",
-            "goodsCategoryId": "50151513",
-            "goodsCategoryName": "Edible vegetable or plant oils",
-            "exciseRate": "",
-            "exciseRule": "",
-            "exciseTax": "",
-            "pack": "",
-            "stick": "",
-            "exciseUnit": "101",
-            "exciseCurrency": "UGX",
-            "exciseRateName": "",
-            "vatApplicableFlag": "1",
-            "deemedExemptCode": "",
-            "vatProjectId": "",
-            "vatProjectName": "testAskcc"
-        }
-
-
-        # Append the new item to the list of items.
-        efris_invoice_content["goodsDetails"].append(new_item)
-        efris_log_info("Done append new item...")
-
-    
-    # Set the tax amount and net amount from the taxes section
-    tax_amount = format_amount(sales_inv["taxes"][0]["tax_amount"])
-    net_amount = format_amount(sales_inv["net_total"])
-    grand_total = format_amount(sales_inv["grand_total"])
-    efris_log_info("tax_amount,net_amount,grand_total: " + format_amount(tax_amount) + ", " + format_amount(net_amount)+ ", " + format_amount(grand_total))
-    inv_currency = sales_inv["currency"]
-
-    new_tax_details_item = {
-        "taxCategoryCode": "01",
-        "netAmount": net_amount,
-        "taxRate": format_amount(tax_rate),
-        "taxAmount": tax_amount,
-        "grossAmount": grand_total,
-        "exciseUnit": "101",
-        "exciseCurrency": inv_currency,
-        "taxRateName": "123"
-    }
-    efris_invoice_content["taxDetails"] = []
-    efris_invoice_content["taxDetails"].append(new_tax_details_item)
-    
-    #frappe.msgprint("tax_amount,net_amount: " + str(tax_amount) + ", " + str(net_amount))
-    
-    efris_invoice_content["summary"]["taxAmount"] = format_amount(tax_amount)
-    efris_invoice_content["summary"]["netAmount"] = format_amount(net_amount)
-    efris_invoice_content["summary"]["itemCount"] = item_count
-    efris_invoice_content["summary"]["grossAmount"] = format_amount(sales_inv["grand_total"])
-
-    efris_invoice_content["payWay"] = []
-    new_payway = {
-         "paymentMode": "101",
-         "paymentAmount": format_amount(grand_total),
-         "orderNumber": "a"
-      }
-    efris_invoice_content["payWay"].append(new_payway)
-
-    efris_log_info(efris_invoice_content)
-    efris_log_info("fetch_efris_data done")
-    return efris_invoice_content
-
-def fetch_test_invoice_goods_no_excise():
-    random_integer = random.randint(1, 1000000000000)
-    invoiceUpload_Goods_NonExcise = {
-    "sellerDetails": {
-      "tin": "1002170340",
-      "ninBrn": "",
-      "legalName": "ASK CORPORATE CONSULTS LTD",
-      "businessName": "ASK CORPORATE CONSULTS LTD",
-      "address": "KAMPALA",
-      "mobilePhone": "15501234567",
-      "linePhone": "010-6689666",
-      "emailAddress": "123456@163.com",
-      "placeOfBusiness": "1496 KYEBANDO ROAD BUSINESS GARDEN KAMWOKYA KAMPALA KAWEMPE DIVISION SOUTH KAWEMPE DIVISION MULAGO III",
-      "referenceNo": random_integer,
-      "branchId": "",
-      "isCheckReferenceNo": "0",
-      "branchName": "Test",
-      "branchCode": ""
-    },
-    "basicInformation": {
-      "invoiceNo": "",
-      "antifakeCode": "",
-      "deviceNo": "1002170340_01",
-      "issuedDate": "2023-05-21 21:40:00",
-      "operator": "aisino",
-      "currency": "UGX",
-      "oriInvoiceId": "1",
-      "invoiceType": "1",
-      "invoiceKind": "1",
-      "dataSource": "101",
-      "invoiceIndustryCode": "101",
-      "isBatch": "0"
-    },
-    "buyerDetails": {
-      "buyerTin": "1016851411",
-      "buyerNinBrn": "/80020002454894",
-      "buyerPassportNum": "",
-      "buyerLegalName": "TECH THINGS LIMITED",
-      "buyerBusinessName": "TECH THINGS LIMITED",
-      "buyerAddress": "beijin",
-      "buyerEmail": "123456@163.com",
-      "buyerMobilePhone": "15501234567",
-      "buyerLinePhone": "010-6689666",
-      "buyerPlaceOfBusi": "beijin",
-      "buyerType": "0",
-      "buyerCitizenship": "1",
-      "buyerSector": "1",
-      "buyerReferenceNo": "00000000001",
-      "nonResidentFlag": "0"
-    },
-    "buyerExtend": {
-      "propertyType": "abc",
-      "district": "haidian",
-      "municipalityCounty": "haidian",
-      "divisionSubcounty": "haidian1",
-      "town": "haidian1",
-      "cellVillage": "haidian1",
-      "effectiveRegistrationDate": "2020-10-19",
-      "meterStatus": "101"
-    },
-    "goodsDetails": [
-      {
-         "item": "pencils-10",
-         "itemCode": "0008396770",
-         "qty": "20",
-         "unitOfMeasure": "101",
-         "unitPrice": "12000.00",
-         "total": "240000.00",
-         "taxRate": "0.18",
-         "tax": "36610.17",
-         "discountTotal": "",
-         "discountTaxRate": "0.00",
-         "orderNumber": "0",
-         "discountFlag": "2",
-         "deemedFlag": "2",
-         "exciseFlag": "2",
-         "categoryId": "",
-         "categoryName": "",
-         "goodsCategoryId": "50151513",
-         "goodsCategoryName": "Edible vegetable or plant oils",
-         "exciseRate": "",
-         "exciseRule": "",
-         "exciseTax": "",
-         "pack": "",
-         "stick": "",
-         "exciseUnit": "101",
-         "exciseCurrency": "UGX",
-         "exciseRateName": "",
-         "vatApplicableFlag": "1",
-         "deemedExemptCode": "",
-         "vatProjectId": "",
-         "vatProjectName": "testAskcc"
-      }
-    ],
-    "taxDetails": [
-      {
-         "taxCategoryCode": "01",
-         "netAmount": "203389.83",
-         "taxRate": "0.18",
-         "taxAmount": "36610.17",
-         "grossAmount": "240000.00",
-         "exciseUnit": "101",
-         "exciseCurrency": "UGX",
-         "taxRateName": "123"
-      }
-    ],
-    "summary": {
-      "netAmount": "203389.83",
-      "taxAmount": "36610.17",
-      "grossAmount": "240000.00",
-      "itemCount": "1",
-      "modeCode": "0",
-      "remarks": "Test Askcc invoice.",
-      "qrCode": ""
-    },
-    "payWay": [
-      {
-         "paymentMode": "101",
-         "paymentAmount": "240000.00",
-         "orderNumber": "a"
-      }
-    ],
-    "extend": {
-      "reason": "",
-      "reasonCode": ""
-    },
-    "importServicesSeller": {
-      "importBusinessName": "",
-      "importEmailAddress": "",
-      "importContactNumber": "",
-      "importAddress": "",
-      "importInvoiceDate": "2023-05-21",
-      "importAttachmentName": "",
-      "importAttachmentContent": ""
-    },
-    "airlineGoodsDetails": [
-      {
-         "item": "pencils-10",
-         "itemCode": "0008396770",
-         "qty": "20",
-         "unitOfMeasure": "101",
-         "unitPrice": "12000.00",
-         "total": "240000.00",
-         "taxRate": "0.18",
-         "tax": "36610.17",
-         "discountTotal": "",
-         "discountTaxRate": "0.00",
-         "orderNumber": "1",
-         "discountFlag": "2",
-         "deemedFlag": "1",
-         "exciseFlag": "2",
-         "categoryId": "",
-         "categoryName": "",
-         "goodsCategoryId": "50151513",
-         "goodsCategoryName": "Edible vegetable or plant oils",
-         "exciseRate": "",
-         "exciseRule": "",
-         "exciseTax": "",
-         "pack": "",
-         "stick": "",
-         "exciseUnit": "101",
-         "exciseCurrency": "UGX",
-         "exciseRateName": ""
-         
-      }
-    ],
-    "edcDetails": {
-      "tankNo": "1111",
-      "pumpNo": "2222",
-      "nozzleNo": "3333",
-      "controllerNo": "",
-      "acquisitionEquipmentNo": "",
-      "levelGaugeNo": "",
-      "mvrn": "",
-      "updateTimes": ""
-    },
-    "agentEntity": {
-      "tin": "",
-      "legalName": "",
-      "businessName": "",
-      "address": ""
-    }
-}
-    return invoiceUpload_Goods_NonExcise
