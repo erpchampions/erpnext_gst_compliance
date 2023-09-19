@@ -83,8 +83,13 @@ class EInvoice(Document):
 		# URA set fields
 		self.invoiceNo = ""
 		self.antifakeCode = ""
-	
-		self.device_no = frappe.db.get_single_value(service_provider, 'device_no')
+
+		# Get Device Code For Each Company
+		doc =  frappe.get_doc("ERP Champions Settings")
+		for entry in doc.credentials:
+			if entry.company == self.sales_invoice.company:
+				self.device_no = entry.device_no
+  
 		self.issuedDate = self.sales_invoice.creation
 		self.operator = self.sales_invoice.modified_by
 		self.currency = self.sales_invoice.currency
