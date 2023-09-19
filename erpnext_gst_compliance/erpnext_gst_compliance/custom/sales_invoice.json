@@ -44,7 +44,7 @@
    "name": "Sales Invoice-check_in_id",
    "no_copy": 0,
    "non_negative": 0,
-   "options": "Hotel Check In",
+   "options": "ToDo",
    "owner": null,
    "permlevel": 0,
    "precision": "",
