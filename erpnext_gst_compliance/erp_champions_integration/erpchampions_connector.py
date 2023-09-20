@@ -181,12 +181,14 @@ class ErpChampionsConnector:
 		status = 'IRN Generated'
 
 		# URA returned fields
-		irn = response["basicInformation"]["invoiceId"]
+		irn = response["basicInformation"]["invoiceNo"]
+		invoice_id = response["basicInformation"]["invoiceId"]
 		antifake_code = response["basicInformation"]["antifakeCode"]
 		qrcode = self.generate_qrcode(response["summary"]["qrCode"])
 
 		self.einvoice.update({
 			'irn': irn,
+			'invoice_id':invoice_id,
 			'antifake_code': antifake_code,
 			'status': status,
 			'qrcode_path': qrcode,

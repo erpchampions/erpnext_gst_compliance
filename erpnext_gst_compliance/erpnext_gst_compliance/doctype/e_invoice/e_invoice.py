@@ -827,9 +827,12 @@ def validate_einvoice_eligibility(doc):
 	if isinstance(doc, six.string_types):
 		doc = loads(doc)
 
+	frappe.log_error("** validate_einvoice_eligibility +1 **")
 	service_provider = frappe.db.get_single_value('E Invoicing Settings', 'service_provider')
 	if not service_provider:
 		return False
+
+	frappe.log_error("** validate_einvoice_eligibility +2 **")
 
 	# if service_provider ==  "ERP Champions Settings":
 	# 	einvoicing_enabled = frappe.get_cached_doc(service_provider)
@@ -841,19 +844,29 @@ def validate_einvoice_eligibility(doc):
 	if not einvoicing_enabled:
 		return False
 
+	frappe.log_error("** validate_einvoice_eligibility +3 **")
+
 	einvoicing_eligible_from = '2021-04-01'
 	if getdate(doc.get('posting_date')) < getdate(einvoicing_eligible_from):
 		return False
 
+	frappe.log_error("** validate_einvoice_eligibility +4 **")
+
 	eligible_companies = frappe.db.get_single_value('E Invoicing Settings', 'companies')
 	invalid_company = doc.get('company') not in eligible_companies
+
+	frappe.log_error("** validate_einvoice_eligibility invalid_company: **" + str(invalid_company))
 	# Modified URA supply types
 	invalid_supply_type = False # doc.get('gst_category') not in ["0", "1", "2", "3"] # 0: B2B 1: B2C 2: Foreigner 3: B2G
 	inter_company_transaction = False # = doc.get('billing_address_gstin') == doc.get('company_gstin')
 	has_non_gst_item = any(d for d in doc.get('items', []) if d.get('is_non_gst'))
+
+	frappe.log_error("** validate_einvoice_eligibility has_non_gst_item: **" + str(has_non_gst_item))
 	# if export invoice, then taxes can be empty
 	# invoice can only be ineligible if no taxes applied and is not an export invoice
 	no_taxes_applied = not doc.get('taxes') and not doc.get('gst_category') == 'Overseas'
+	
+	frappe.log_error("** validate_einvoice_eligibility no_taxes_applied: **" + str(no_taxes_applied))
 
 	if invalid_company or invalid_supply_type or inter_company_transaction or no_taxes_applied or has_non_gst_item:
 		frappe.log_error(f'{invalid_company}, {invalid_supply_type}, {inter_company_transaction}, {no_taxes_applied}, {has_non_gst_item}')
