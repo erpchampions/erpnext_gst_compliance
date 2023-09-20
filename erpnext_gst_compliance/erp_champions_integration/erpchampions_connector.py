@@ -13,6 +13,7 @@ from frappe.integrations.utils import make_post_request, make_get_request
 from frappe.utils.data import add_to_date, time_diff_in_seconds, now_datetime
 import erpnext_gst_compliance.efris_utils
 import json
+from datetime import datetime
 
 class ErpChampionsConnector:
 	def __init__(self, gstin):
@@ -267,34 +268,72 @@ class ErpChampionsConnector:
 
 	@log_exception
 	def make_cancel_irn_request(self, reason, remark):
-		headers = self.get_headers()
 		irn = self.einvoice.irn
+  
+		# Get Copy of E Invoice
+		credit_note = self.einvoice
+		# Add needed fields
+		credit_note.oriInvoiceId = irn
+		credit_note.oriInvoiceNo = irn
+		credit_note.reasonCode = "102"
+		credit_note.reason = ""
+		credit_note.applicationTime = datetime.now()
+		credit_note.invoiceApplyCategoryCode = "101"
+		credit_note.currency = "UGX"
+		credit_note.contactName = ""
+		credit_note.contactMobileNum = ""
+		credit_note.contactEmail = ""
+		credit_note.source = "103"
+		credit_note.remarks = "Remarks"
+		credit_note.sellersReferenceNo = credit_note["sellerDetals"]["referenceNo"]
 
-		payload = {'Irn': irn, 'Cnlrsn': reason, 'Cnlrem': remark}
-		payload = dumps(payload, indent=4)
+		# Remove unneccessary fields
+		del credit_note["sellerDetails"]
+		del credit_note["buyerExtend"]
 
-		url = self.endpoints.cancel_irn
-		response = self.make_request('post', url, headers, payload)
+		# Make fields negative
 
-		sucess, errors = self.handle_irn_cancellation_response(response)
+		# GoodDetails
+		for index, item in enumerate(credit_note["goodDetails"]):
+			credit_note["goodDetails"][item].qty = - float(credit_note["goodDetails"][item].qty)
+			credit_note["goodDetails"][item].total = - float(credit_note["goodDetails"][item].total)
+			credit_note["goodDetails"][item].tax = - float(credit_note["goodDetails"][item].tax)
+   
+		# TaxDetails
+		for index, tax in enumerate(credit_note["taxDetails"]):
+			credit_note["taxDetails"].netAmount = - float(credit_note["taxDetails"].netAmounty)
+			credit_note["taxDetails"].taxAmount = - float(credit_note["taxDetails"].taxAmounty)
+			credit_note["taxDetails"].grossAmount = - float(credit_note["taxDetails"].grossAmounty)
+   
+		# Summary
+		credit_note["summary"].netAmount = - float(credit_note["summary"].netAmount)
+		credit_note["summary"].taxAmount = - float(credit_note["summary"].taxAmount)
+		credit_note["summary"].grossAmount = - float(credit_note["summary"].grossAmount)
+  
+		# Payway
+		credit_note["payWay"].paymentAmount = - float(credit_note["payWay"].paymentAmount)
+  
+		frappe.log_error("Credit Note JSON: ", credit_note)
+
+		status, response = erpnext_gst_compliance.efris_utils.make_post("T110", credit_note)
+  
+		sucess, errors = self.handle_irn_cancellation_response(status, response)
 		return sucess, errors
 
 	@log_exception
-	def handle_irn_cancellation_response(self, response):
-		irn_already_cancelled = '9999' in response.get('message')
-		if response.get('success') or irn_already_cancelled:
-			self.handle_successful_irn_cancellation(response)
+	def handle_irn_cancellation_response(self, status, response):
+		if status:
+			try: 
+				self.handle_successful_irn_cancellation(response)
+			except Exception as e:
+				frappe.log_error("E Invoice Cancellation Error: ", e)
+			return True, []
 		else:
-			errors = response.get('message')
-			errors = self.sanitize_error_message(errors)
-			return False, errors
-
-		return True, []
+			return False, "Something went wrong"
 
 	def handle_successful_irn_cancellation(self, response):
 		self.einvoice.irn_cancelled = 1
-		if response.get('result'):
-			self.einvoice.irn_cancel_date = response.get('result').get('CancelDate')
+		self.einvoice.irn_cancel_date = datetime.now()
 		self.einvoice.status = 'IRN Cancelled'
 		self.einvoice.flags.ignore_validate_update_after_submit = 1
 		self.einvoice.flags.ignore_permissions = 1
