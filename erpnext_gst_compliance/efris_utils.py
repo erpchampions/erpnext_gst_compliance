@@ -61,7 +61,7 @@ def make_post(interfaceCode, content):
 
         # Convert content to JSON and log the result
         json_content = json.dumps(content)
-        efris_log_info("Content converted to JSON successfully")
+        efris_log_info("Content converted to JSON successfully: "+ json_content)
 
         # Encrypt content with AES and log the result
         isAESEncrypted = encrypt_aes_ecb(json_content, aes_key)
@@ -294,22 +294,25 @@ def post_reqs(data, url, headers):
     return response.text
 
 def get_private_key():
-    # Get the private files directory for the current site
-    private_files_path = frappe.get_site_path('private', 'files')
+    try:
+        # Get the private files directory for the current site
+        private_files_path = frappe.get_site_path('private', 'files')
 
-    # Construct the path to the key file in the ERPNext file system
-    key_file_path = os.path.join(private_files_path, 'erpnext.pfx')
+        # Construct the path to the key file in the ERPNext file system
+        key_file_path = os.path.join(private_files_path, 'erpnext.pfx')
 
-    # Load the PKCS#12 file
-    with open(key_file_path, "rb") as f:
-        pfx_data = f.read()
+        # Load the PKCS#12 file
+        with open(key_file_path, "rb") as f:
+            pfx_data = f.read()
 
-    # Extract the private key and certificate from the PKCS#12 file
-    pfx = OpenSSL.crypto.load_pkcs12(pfx_data, b"123456")
-    pkey = pfx.get_privatekey()
+        # Extract the private key and certificate from the PKCS#12 file
+        pfx = OpenSSL.crypto.load_pkcs12(pfx_data, b"123456")
+        pkey = pfx.get_privatekey()
 
-    efris_log_info("get_private_key()...done")
-    return pkey
+        efris_log_info("get_private_key()...done")
+        return pkey
+    except:
+        frappe.throw(_('Could not find private key inside Files. Please make sure it is uploaded.'))
 
 def safe_load_json(message):
 	try:
