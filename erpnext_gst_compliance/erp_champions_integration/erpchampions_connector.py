@@ -130,8 +130,8 @@ class ErpChampionsConnector:
 		# response = self.make_request('post', url, headers, payload)
 		status, response = erpnext_gst_compliance.efris_utils.make_post("T109", einvoice_json)
 		#frappe.log_error(str(response[1]))
-		erpnext_gst_compliance.efris_utils.efris_log_info("response:");
-		erpnext_gst_compliance.efris_utils.efris_log_info(response);
+		erpnext_gst_compliance.efris_utils.efris_log_info("response:")
+		erpnext_gst_compliance.efris_utils.efris_log_info(response)
   
 		sucess, errors = self.handle_irn_generation_response(status, response)
 		return sucess, errors
@@ -270,52 +270,140 @@ class ErpChampionsConnector:
 
 	@log_exception
 	def make_cancel_irn_request(self, reason, remark):
-		irn = self.einvoice.irn
+		
+		credit_note = {
+			"oriInvoiceId": self.einvoice.invoice_id,
+			"oriInvoiceNo": self.einvoice.irn,
+			"reasonCode": "102",
+			"reason": "",
+			"applicationTime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+			"invoiceApplyCategoryCode": "101",
+			"currency": "UGX",
+			"contactName": "",
+			"contactMobileNum": "",
+			"contactEmail": "",
+			"source": "103",
+			"remarks": "Remarks",
+			"sellersReferenceNo": self.einvoice.seller_reference_no
+		}
+		item_list = []
+		for item in self.einvoice.items:
+			item_list.append({
+				"item": item.item_name,
+				"itemCode": item.item_name,
+				"qty": item.quantity,
+				"unitOfMeasure": "101",
+				"unitPrice": "15000.00",
+				"total": item.amount,
+				"taxRate": str(item.gst_rate),
+				"tax": item.tax,
+				"orderNumber": str(item.order_number),
+				"deemedFlag": "2",
+				"exciseFlag": "2",
+				"categoryId": "",
+				"categoryName": "",
+				"goodsCategoryId": item.gst_hsn_code,
+				"goodsCategoryName": "",
+				"exciseRate": "",
+				"exciseRule": "",
+				"exciseTax": "",
+				"pack": "",
+				"stick": "",
+				"exciseUnit": "",
+				"exciseCurrency": "",
+				"exciseRateName": "",
+				"vatApplicableFlag": "1"
+			})
+   
+		credit_note.update({"goodsDetails": item_list})
   
-		# Get Copy of E Invoice
-		credit_note = self.einvoice
+		tax_list = []
+		for tax in self.einvoice.taxes:
+			tax_list.append({
+				"taxCategoryCode": tax.tax_category_code,
+				"netAmount": tax.net_amount,
+				"taxRate": str(tax.tax_rate),
+				"taxAmount": tax.tax_amount,
+				"grossAmount": tax.gross_amount,
+				"exciseUnit": tax.excise_unit,
+				"exciseCurrency": tax.excise_currency,
+				"taxRateName": tax.tax_rate_name
+			})
+   
+		credit_note.update({"taxDetails": tax_list})
+		credit_note.update({"summary": {
+			"netAmount": self.einvoice.net_amount,
+			"taxAmount": self.einvoice.tax_amount,
+			"grossAmount": self.einvoice.gross_amount,
+			"itemCount": str(self.einvoice.item_count),
+			"modeCode": "0",
+			"qrCode": self.einvoice.qrcode_path
+		}})
+		credit_note.update({"buyerDetails": {
+			"buyerTin": self.einvoice.buyer_gstin,
+			"buyerNinBrn": "",
+			"buyerPassportNum": "",
+			"buyerLegalName": "",
+			"buyerBusinessName": "",
+			"buyerAddress": "",
+			"buyerEmail": "",
+			"buyerMobilePhone": "",
+			"buyerLinePhone": "",
+			"buyerPlaceOfBusi": "",
+			"buyerType": "1",
+			"buyerCitizenship": "1",
+			"buyerSector": "1",
+			"buyerReferenceNo": ""
+		}})
+		credit_note.update({"payWay": [
+			{
+				"paymentMode": "101",
+				"paymentAmount": self.einvoice.gross_amount,
+				"orderNumber": "a"
+			}
+		]})
+		credit_note.update({"importServicesSeller": {
+			"importBusinessName": "",
+			"importEmailAddress": "",
+			"importContactNumber": "",
+			"importAddress": "",
+			"importInvoiceDate": "",
+			"importAttachmentName": "",
+			"importAttachmentContent": ""
+		}})
+		credit_note.update({"basicInformation": {
+			"operator": self.einvoice.operator,
+			"invoiceKind": "1",
+			"invoiceIndustryCode": "102",
+			"branchId": ""
+		}})
+  
+		frappe.log_error("Credit Note JSON BEFORE: ", credit_note)
 		# Add needed fields
-		credit_note.oriInvoiceId = irn
-		credit_note.oriInvoiceNo = irn
-		credit_note.reasonCode = "102"
-		credit_note.reason = ""
-		credit_note.applicationTime = datetime.now()
-		credit_note.invoiceApplyCategoryCode = "101"
-		credit_note.currency = "UGX"
-		credit_note.contactName = ""
-		credit_note.contactMobileNum = ""
-		credit_note.contactEmail = ""
-		credit_note.source = "103"
-		credit_note.remarks = "Remarks"
-		credit_note.sellersReferenceNo = credit_note["sellerDetals"]["referenceNo"]
-
-		# Remove unneccessary fields
-		del credit_note["sellerDetails"]
-		del credit_note["buyerExtend"]
 
 		# Make fields negative
 
-		# GoodDetails
-		for index, item in enumerate(credit_note["goodDetails"]):
-			credit_note["goodDetails"][item].qty = - float(credit_note["goodDetails"][item].qty)
-			credit_note["goodDetails"][item].total = - float(credit_note["goodDetails"][item].total)
-			credit_note["goodDetails"][item].tax = - float(credit_note["goodDetails"][item].tax)
+		# GoodsDetails
+		for index, item in enumerate(credit_note["goodsDetails"]):
+			credit_note["goodsDetails"][index]["qty"] = str(-abs(int(credit_note["goodsDetails"][index]["qty"])))
+			credit_note["goodsDetails"][index]["total"] = str(-abs(float(credit_note["goodsDetails"][index]["total"])))
+			credit_note["goodsDetails"][index]["tax"] = str(-abs(float(credit_note["goodsDetails"][index]["tax"])))
    
 		# TaxDetails
 		for index, tax in enumerate(credit_note["taxDetails"]):
-			credit_note["taxDetails"].netAmount = - float(credit_note["taxDetails"].netAmounty)
-			credit_note["taxDetails"].taxAmount = - float(credit_note["taxDetails"].taxAmounty)
-			credit_note["taxDetails"].grossAmount = - float(credit_note["taxDetails"].grossAmounty)
+			credit_note["taxDetails"][index]["netAmount"] = str(-abs(float(credit_note["taxDetails"][index]["netAmount"])))
+			credit_note["taxDetails"][index]["taxAmount"] = str(-abs(float(credit_note["taxDetails"][index]["taxAmount"])))
+			credit_note["taxDetails"][index]["grossAmount"] = str(-abs(float(credit_note["taxDetails"][index]["grossAmount"])))
    
 		# Summary
-		credit_note["summary"].netAmount = - float(credit_note["summary"].netAmount)
-		credit_note["summary"].taxAmount = - float(credit_note["summary"].taxAmount)
-		credit_note["summary"].grossAmount = - float(credit_note["summary"].grossAmount)
+		credit_note['summary']['netAmount'] = str(-abs(float(credit_note['summary']['netAmount'])))
+		credit_note['summary']['taxAmount'] = str(-abs(float(credit_note['summary']['taxAmount'])))
+		credit_note['summary']["grossAmount"] = str(-abs(float(credit_note['summary']["grossAmount"])))
   
 		# Payway
-		credit_note["payWay"].paymentAmount = - float(credit_note["payWay"].paymentAmount)
+		credit_note["payWay"][0]["paymentAmount"] = str(-abs(float(credit_note["payWay"][0]["paymentAmount"])))
   
-		frappe.log_error("Credit Note JSON: ", credit_note)
+		frappe.log_error("Credit Note JSON AFTER: ", credit_note)
 
 		status, response = erpnext_gst_compliance.efris_utils.make_post("T110", credit_note)
   

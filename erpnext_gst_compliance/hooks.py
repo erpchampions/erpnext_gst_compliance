@@ -58,3 +58,5 @@ user_data_fields = [
 		"doctype": "{doctype_4}"
 	}
 ]
+
+fixtures = ["Item"]
