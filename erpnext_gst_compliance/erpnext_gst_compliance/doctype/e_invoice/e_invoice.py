@@ -179,19 +179,19 @@ class EInvoice(Document):
 			frappe.throw(_('Company address must be set to be able to generate e-invoice.'))
 
 		seller_address = frappe.get_all('Address', {'name': company_address}, ['*'])[0]
-		mandatory_field_label_map = {
-			'gstin': 'GSTIN',
-			'address_line1': 'Address Lines',
-			'city': 'City',
-			'pincode': 'Pincode',
-			'gst_state_number': 'State Code',
-			'email_id': 'Email Address',
-			'phone': 'Phone'
-		}
-		for field, field_label in mandatory_field_label_map.items():
-			if not seller_address[field]:
-				frappe.throw(_('Company address {} must have {} set to be able to generate e-invoice.')
-					.format(company_address, field_label))
+		# mandatory_field_label_map = {
+		# 	'gstin': 'GSTIN',
+		# 	'address_line1': 'Address Lines',
+		# 	'city': 'City',
+		# 	'pincode': 'Pincode',
+		# 	'gst_state_number': 'State Code',
+		# 	'email_id': 'Email Address',
+		# 	'phone': 'Phone'
+		# }
+		# for field, field_label in mandatory_field_label_map.items():
+		# 	if not seller_address[field]:
+		# 		frappe.throw(_('Company address {} must have {} set to be able to generate e-invoice.')
+		# 			.format(company_address, field_label))
     
 		# if not self.sales_invoice.seller_reference_no:
 		# 	frappe.throw(_('Reference No must be set'))
@@ -211,47 +211,81 @@ class EInvoice(Document):
 		self.seller_trade_name = self.company
 
 	def set_buyer_details(self):
-		customer_address = self.sales_invoice.customer_address
-		if not customer_address:
-			frappe.throw(_('Customer address must be set to be able to generate e-invoice.'))
+		#customer_address = self.sales_invoice.customer_address
+		
+		frappe.log_error("set_buyer_details...")
+		customer_name = self.sales_invoice.customer
+		if not customer_name:
+			frappe.throw(_('customer must be set to be able to generate e-invoice.'))
+		
+		frappe.log_error("Done with customer checkl")
+		
+		customer = frappe.get_doc('Customer', customer_name)
+		self.buyer_gstin = customer.tax_id
+		frappe.log_error("self.buyer_gstin: " + str(self.buyer_gstin))
 
+		gst_category = self.sales_invoice.gst_category
+		
+		# Modified to URA standards
+		if gst_category == 'B2B' and not self.buyer_gstin: 
+			frappe.throw(_('TaxID/TIN must be set for B2B Customer (GST Category). See Tax tab on Customer profile.'))
+		#elif gst_category == 'B2C'
+		#elif gst_category == 'Foreigner':
+		#elif gst_category == 'B2G': 
+
+		#if not tax_id:
+		#	frappe.throw(_('Tax ID must be set to be able to generate e-invoice.'))
+
+
+		# mandatory_field_label_map = {
+		# 	'gstin': 'GSTIN',
+		# 	'address_line1': 'Address Lines',
+		# 	'city': 'City',
+		# 	'pincode': 'Pincode',
+		# 	'gst_state_number': 'State Code',
+		# 	'email_id': 'Email Address',
+		# 	'phone': 'Phone'
+		# }
+		# for field, field_label in mandatory_field_label_map.items():
+		# 	if field == 'gstin':
+		# 		if not buyer_address.gstin and not is_export:
+		# 			frappe.throw(_('Customer address {} must have {} set to be able to generate e-invoice.')
+		# 				.format(customer_address, field_label))
+		# 		continue
+
+		# 	if not buyer_address[field]:
+		# 		frappe.throw(_('Customer address {} must have {} set to be able to generate e-invoice.')
+		# 			.format(customer_address, field_label))
+
+		self.buyer_legal_name = customer.customer_name #self.sales_invoice.customer
+		frappe.log_error("self.buyer_legal_name: " + str(self.buyer_legal_name))
 		is_export = self.supply_type == 'EXPWOP'
-		buyer_address = frappe.get_all('Address', {'name': customer_address}, ['*'])[0]
-		mandatory_field_label_map = {
-			'gstin': 'GSTIN',
-			'address_line1': 'Address Lines',
-			'city': 'City',
-			'pincode': 'Pincode',
-			'gst_state_number': 'State Code',
-			'email_id': 'Email Address',
-			'phone': 'Phone'
-		}
-		for field, field_label in mandatory_field_label_map.items():
-			if field == 'gstin':
-				if not buyer_address.gstin and not is_export:
-					frappe.throw(_('Customer address {} must have {} set to be able to generate e-invoice.')
-						.format(customer_address, field_label))
-				continue
 
-			if not buyer_address[field]:
-				frappe.throw(_('Customer address {} must have {} set to be able to generate e-invoice.')
-					.format(customer_address, field_label))
+		#if customer_address:
+		#	frappe.throw(_('Customer address must be set to be able to generate e-invoice.'))
 
-		self.buyer_legal_name = self.sales_invoice.customer
-		self.buyer_gstin = buyer_address.gstin
-		self.buyer_location = buyer_address.city
-		self.buyer_pincode = buyer_address.pincode
-		self.buyer_address_line_1 = buyer_address.address_line1
-		self.buyer_address_line_2 = buyer_address.address_line2
-		self.buyer_state_code = buyer_address.gst_state_number
-		self.buyer_place_of_supply = buyer_address.gst_state_number
-		#Added fields
-		self.buyer_email = buyer_address.email_id
+		
+			#buyer_address = frappe.get_all('Address', {'name': customer_address}, ['*'])[0]
+			#self.buyer_gstin = buyer_address.gstin
+			# self.buyer_location = buyer_address.city
+			# self.buyer_pincode = buyer_address.pincode
+			# self.buyer_address_line_1 = buyer_address.address_line1
+			# self.buyer_address_line_2 = buyer_address.address_line2
+			# self.buyer_state_code = buyer_address.gst_state_number
+			# self.buyer_place_of_supply = buyer_address.gst_state_number
+			# #Added fields
+			# self.buyer_email = buyer_address.email_id
+		# self.buyer_location = "test"
+		# self.buyer_pincode = "123"
+		# self.buyer_address_line_1 = "test"
+		# self.buyer_address_line_2 = "test"
+		# self.buyer_state_code = "32"
+		
 		buyer_nin = frappe.get_list("Customer", fields="*", filters={'name':self.sales_invoice.customer})[0].nin
 		self.buyerNinBrn = "" if buyer_nin is None else  buyer_nin
 		pass_num = frappe.get_list("Customer", fields="*", filters={'name':self.sales_invoice.customer})[0].buyer_pass_num
 		self.buyerPassportNum = "" if pass_num is None else  pass_num
-		self.buyer_phone = buyer_address.phone # Picked from customer phone field
+		#self.buyer_phone = buyer_address.phone # Picked from customer phone field
 		self.buyerCitizenship = "" # Hardcode for now
 		self.buyerSector = "" # Hardcode for now
 		self.buyerReferenceNo = "" # Hardcode for now
@@ -673,9 +707,9 @@ class EInvoice(Document):
 				"taxRate": str(self.sales_invoice.taxes[0].rate/100),
 				"taxAmount": str(self.taxAmount),
 				"grossAmount": str(self.gross_amount),
-				"exciseUnit": "101",
-				"exciseCurrency": "UGX",
-				"taxRateName": "123"
+				"exciseUnit": "",
+				"exciseCurrency": "",
+				"taxRateName": ""
 			}]
 		}
 
@@ -687,7 +721,7 @@ class EInvoice(Document):
 				"grossAmount": str(self.gross_amount),
 				"itemCount": str(self.item_count),
 				"modeCode": str(self.modeCode),
-				"remarks": "Test Askcc invoice.",
+				"remarks": "",
 				"qrCode": ""
 			}
        }

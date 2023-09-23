@@ -108,22 +108,6 @@
   "supplier_items": [],
   "taxes": [],
   "total_projected_qty": 0.0,
-  "uoms": [
-   {
-    "conversion_factor": 1.0,
-    "parent": "Test Item 2",
-    "parentfield": "uoms",
-    "parenttype": "Item",
-    "uom": "Nos"
-   },
-   {
-    "conversion_factor": 1.0,
-    "parent": "Test Item 2",
-    "parentfield": "uoms",
-    "parenttype": "Item",
-    "uom": "Nos"
-   }
-  ],
   "valuation_method": "",
   "valuation_rate": 15000.0,
   "variant_based_on": "Item Attribute",
@@ -241,22 +225,6 @@
   "supplier_items": [],
   "taxes": [],
   "total_projected_qty": 0.0,
-  "uoms": [
-   {
-    "conversion_factor": 1.0,
-    "parent": "Test Item 3",
-    "parentfield": "uoms",
-    "parenttype": "Item",
-    "uom": "Nos"
-   },
-   {
-    "conversion_factor": 1.0,
-    "parent": "Test Item 3",
-    "parentfield": "uoms",
-    "parenttype": "Item",
-    "uom": "Nos"
-   }
-  ],
   "valuation_method": "",
   "valuation_rate": 10000.0,
   "variant_based_on": "Item Attribute",

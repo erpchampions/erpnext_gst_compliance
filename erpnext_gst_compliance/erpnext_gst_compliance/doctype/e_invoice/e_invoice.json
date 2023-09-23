@@ -14,13 +14,12 @@
   "irn_cancel_date",
   "irn_cancelled",
   "column_break_5",
-  "qrcode_path",
-  "qrcode",
   "ewaybill_validity",
   "version",
   "basic_information_section",
-  "tax_scheme",
   "reverse_charge",
+  "qrcode_path",
+  "qrcode",
   "igst_on_intra",
   "column_break_6",
   "ecommerce_gstin",
@@ -46,13 +45,8 @@
   "supply_type",
   "buyer_legal_name",
   "buyer_trade_name",
-  "buyer_address_line_1",
   "buyer_address_line_2",
   "column_break_33",
-  "buyer_location",
-  "buyer_pincode",
-  "buyer_state_code",
-  "buyer_place_of_supply",
   "buyer_phone",
   "buyer_email",
   "dispatch_details_section",
@@ -134,6 +128,7 @@
   "other_details_section",
   "company",
   "column_break_106",
+  "tax_scheme",
   "amended_from"
  ],
  "fields": [
@@ -153,6 +148,7 @@
    "fieldtype": "Data",
    "label": "Tax Scheme",
    "read_only": 1,
+   "report_hide": 1,
    "reqd": 1
   },
   {
@@ -264,14 +260,13 @@
   {
    "fieldname": "seller_pincode",
    "fieldtype": "Data",
-   "label": "Pincode",
-   "reqd": 1
+   "label": "Pincode"
   },
   {
    "fieldname": "seller_state_code",
    "fieldtype": "Data",
-   "label": "State Code",
-   "reqd": 1
+   "hidden": 1,
+   "label": "State Code"
   },
   {
    "depends_on": "seller_phone",
@@ -298,14 +293,12 @@
   {
    "fieldname": "buyer_gstin",
    "fieldtype": "Data",
-   "label": "GSTIN",
-   "reqd": 1
+   "label": "GSTIN"
   },
   {
    "fieldname": "buyer_legal_name",
    "fieldtype": "Data",
-   "label": "Legal Name",
-   "reqd": 1
+   "label": "Legal Name"
   },
   {
    "depends_on": "buyer_trade_name",
@@ -314,40 +307,16 @@
    "label": "Trade Name"
   },
   {
-   "fieldname": "buyer_address_line_1",
-   "fieldtype": "Data",
-   "label": "Address Line 1",
-   "reqd": 1
-  },
-  {
    "depends_on": "buyer_address_line_2",
    "fieldname": "buyer_address_line_2",
    "fieldtype": "Data",
    "label": "Address Line 2"
   },
   {
-   "fieldname": "buyer_location",
-   "fieldtype": "Data",
-   "label": "Location",
-   "reqd": 1
-  },
-  {
-   "fieldname": "buyer_pincode",
-   "fieldtype": "Data",
-   "label": "Pincode",
-   "reqd": 1
-  },
-  {
-   "fieldname": "buyer_state_code",
-   "fieldtype": "Data",
-   "label": "State Code",
-   "reqd": 1
-  },
-  {
    "depends_on": "buyer_phone",
    "fieldname": "buyer_phone",
    "fieldtype": "Data",
-   "label": "Phone"
+   "label": "Phone`"
   },
   {
    "depends_on": "buyer_email",
@@ -413,11 +382,12 @@
   {
    "fieldname": "value_details_section",
    "fieldtype": "Section Break",
-   "label": "Value Details"
+   "label": "Summary"
   },
   {
    "fieldname": "ass_value",
    "fieldtype": "Currency",
+   "hidden": 1,
    "label": "Assessable Value",
    "non_negative": 1,
    "precision": "2"
@@ -458,6 +428,7 @@
   {
    "fieldname": "base_invoice_value",
    "fieldtype": "Currency",
+   "hidden": 1,
    "label": "Invoice Value (Company Currency)",
    "non_negative": 1,
    "precision": "2"
@@ -493,10 +464,10 @@
   {
    "fieldname": "invoice_value",
    "fieldtype": "Currency",
+   "hidden": 1,
    "label": "Invoice Value",
    "non_negative": 1,
-   "precision": "2",
-   "reqd": 1
+   "precision": "2"
   },
   {
    "depends_on": "state_cess_value",
@@ -655,7 +626,7 @@
   {
    "fieldname": "item_details_section",
    "fieldtype": "Section Break",
-   "label": "Item Details"
+   "label": "Goods Details"
   },
   {
    "fieldname": "items",
@@ -689,12 +660,6 @@
    "options": "Sales Invoice",
    "reqd": 1,
    "unique": 1
-  },
-  {
-   "depends_on": "buyer_place_of_supply",
-   "fieldname": "buyer_place_of_supply",
-   "fieldtype": "Data",
-   "label": "Place of Supply"
   },
   {
    "fetch_from": "invoice.gst_transporter_id",
@@ -812,6 +777,7 @@
    "depends_on": "eval: !doc.irn_cancelled",
    "fieldname": "ewaybill",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "E-Way Bill No.",
    "read_only": 1
   },
@@ -819,6 +785,7 @@
    "depends_on": "eval: !doc.irn_cancelled",
    "fieldname": "ewaybill_validity",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "E-Way Bill Validity",
    "read_only": 1
   },
@@ -864,6 +831,7 @@
    "collapsible": 1,
    "fieldname": "item_totals_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Item Totals",
    "print_hide": 1
   },
@@ -878,6 +846,7 @@
   {
    "fieldname": "items_ass_value",
    "fieldtype": "Currency",
+   "hidden": 1,
    "label": "Taxable Value",
    "non_negative": 1,
    "precision": "2"
@@ -920,6 +889,7 @@
   {
    "fieldname": "item_other_charges",
    "fieldtype": "Currency",
+   "hidden": 1,
    "label": "Other Charges",
    "non_negative": 1,
    "precision": "2"
@@ -927,11 +897,13 @@
   {
    "fieldname": "items_total_value",
    "fieldtype": "Currency",
+   "hidden": 1,
    "label": "Total Value",
    "non_negative": 1,
    "precision": "2"
   },
   {
+   "bold": 1,
    "fieldname": "basic_information_section",
    "fieldtype": "Section Break",
    "label": "Basic Information"
@@ -940,7 +912,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-08-14 22:09:32.869821",
+ "modified": "2023-09-23 20:16:43.417173",
  "modified_by": "Administrator",
  "module": "ERPNext GST Compliance",
  "name": "E Invoice",
