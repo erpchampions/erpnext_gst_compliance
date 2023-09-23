@@ -213,13 +213,12 @@ class EInvoice(Document):
 	def set_buyer_details(self):
 		#customer_address = self.sales_invoice.customer_address
 		
-		frappe.log_error("set_buyer_details...")
+		#frappe.log_error("set_buyer_details...")
 		customer_name = self.sales_invoice.customer
 		if not customer_name:
 			frappe.throw(_('customer must be set to be able to generate e-invoice.'))
 		
-		frappe.log_error("Done with customer checkl")
-		
+			
 		customer = frappe.get_doc('Customer', customer_name)
 		self.buyer_gstin = customer.tax_id
 		frappe.log_error("self.buyer_gstin: " + str(self.buyer_gstin))
