@@ -13,6 +13,7 @@ from frappe.model.document import Document
 from frappe.utils.data import cint, format_date, getdate, flt
 from frappe.core.doctype.version.version import get_diff
 import random
+from erpnext_gst_compliance.efris_utils import efris_log_info
 
 #from erpnext.regional.india.utils import get_gst_accounts
 GST_ACCOUNT_FIELDS = (
@@ -207,7 +208,10 @@ class EInvoice(Document):
 		# Added fields
 		self.seller_email = seller_address.email_id
 		# Use invoice name instead
-		self.seller_reference_no = self.sales_invoice.name
+		self.seller_reference_no = self.sales_invoice.seller_reference_no
+		efris_log_info("self.seller_reference_no:" + str(self.seller_reference_no))
+		if not self.seller_reference_no:
+			self.seller_reference_no = self.sales_invoice.name
 		self.seller_trade_name = self.company
 
 	def set_buyer_details(self):
