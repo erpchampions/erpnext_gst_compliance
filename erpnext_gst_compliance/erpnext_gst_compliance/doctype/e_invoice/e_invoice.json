@@ -291,11 +291,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "buyer_gstin",
-   "fieldtype": "Data",
-   "label": "GSTIN"
-  },
-  {
    "fieldname": "buyer_legal_name",
    "fieldtype": "Data",
    "label": "Legal Name"
@@ -907,12 +902,17 @@
    "fieldname": "basic_information_section",
    "fieldtype": "Section Break",
    "label": "Basic Information"
+  },
+  {
+   "fieldname": "buyer_gstin",
+   "fieldtype": "Data",
+   "label": "GSTIN"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-09-23 20:16:43.417173",
+ "modified": "2023-09-25 17:42:57.950630",
  "modified_by": "Administrator",
  "module": "ERPNext GST Compliance",
  "name": "E Invoice",
