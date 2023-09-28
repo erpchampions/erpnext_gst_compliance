@@ -10,18 +10,14 @@ from frappe import _
 from json import loads, dumps
 from frappe.model import default_fields
 from frappe.model.document import Document
-from frappe.utils.data import cint, format_date, getdate, flt
+from frappe.utils.data import cint, format_date, getdate, flt, get_link_to_form
 from frappe.core.doctype.version.version import get_diff
 import random
 from erpnext_gst_compliance.efris_utils import efris_log_info
 
 #from erpnext.regional.india.utils import get_gst_accounts
 GST_ACCOUNT_FIELDS = (
-    "cgst_account",
-    "sgst_account",
-    "igst_account",
-    "cess_account",
-    "cess_non_advol_account",
+    "account",    
 )
 
 class EInvoice(Document):
@@ -67,7 +63,7 @@ class EInvoice(Document):
 		self.set_seller_details()
 		self.set_buyer_details()
 		self.set_item_details()
-		self.set_value_details()
+		#self.set_value_details()
   
 		# Additional methods
 		self.set_basic_information()
@@ -198,12 +194,11 @@ class EInvoice(Document):
 		# 	frappe.throw(_('Reference No must be set'))
 
 		self.seller_legal_name = self.company
-		self.seller_gstin = seller_address.gstin
-		self.seller_location = seller_address.city
-		self.seller_pincode = seller_address.pincode
-		self.seller_address_line_1 = seller_address.address_line1
-		self.seller_address_line_2 = seller_address.address_line2
-		self.seller_state_code = seller_address.gst_state_number
+		#company = frappe.get_doc("Company",self.company)
+		
+		self.seller_gstin = self.sales_invoice.company_tax_id
+		efris_log_info("self.seller_gstin:" + str(self.seller_gstin))
+
 		self.seller_phone = seller_address.phone
 		# Added fields
 		self.seller_email = seller_address.email_id
@@ -418,16 +413,16 @@ class EInvoice(Document):
 				'hsn_code_description': frappe.get_doc("GST HSN Code", item.gst_hsn_code).commodity_name
 			})
 
-			self.set_item_tax_details(einvoice_item)
+			#self.set_item_tax_details(einvoice_item)
 
-			einvoice_item.total_item_value = abs(
-				einvoice_item.taxable_value + einvoice_item.igst_amount +
-				einvoice_item.sgst_amount + einvoice_item.cgst_amount + 
-				einvoice_item.cess_amount + einvoice_item.cess_nadv_amount +
-				einvoice_item.other_charges
-			)
+			# einvoice_item.total_item_value = abs(
+			# 	einvoice_item.taxable_value + einvoice_item.igst_amount +
+			# 	einvoice_item.sgst_amount + einvoice_item.cgst_amount + 
+			# 	einvoice_item.cess_amount + einvoice_item.cess_nadv_amount +
+			# 	einvoice_item.other_charges
+			# )
 
-		self.set_calculated_item_totals()
+		#self.set_calculated_item_totals()
 
 	def set_calculated_item_totals(self):
 		item_total_fields = ['items_ass_value', 'items_igst', 'items_sgst', 'items_cgst',
@@ -446,7 +441,9 @@ class EInvoice(Document):
 			self.items_total_value += item.total_item_value
 
 	def set_item_tax_details(self, item):
+		efris_log_info("set_item_tax_details()..get_gst_accounts()")
 		gst_accounts = get_gst_accounts(self.company)
+		efris_log_info(gst_accounts)
 		gst_accounts_list = [d for accounts in gst_accounts.values() for d in accounts if d]
 
 		for attr in ['cgst_amount',  'sgst_amount', 'igst_amount',
@@ -498,7 +495,9 @@ class EInvoice(Document):
 		self.set_invoice_tax_details()
 
 	def set_invoice_tax_details(self):
+		efris_log_info("set_invoice_tax_details()..get_gst_accounts()")
 		gst_accounts = get_gst_accounts(self.company)
+		efris_log_info(gst_accounts)
 		gst_accounts_list = [d for accounts in gst_accounts.values() for d in accounts if d]
 
 		self.cgst_value = 0
@@ -593,11 +592,9 @@ class EInvoice(Document):
 				"ninBrn": "",
 				"legalName": self.seller_legal_name,
 				"businessName": self.seller_trade_name,
-				"address": self.seller_location,
 				"mobilePhone": self.seller_phone,
 				"linePhone": "",
 				"emailAddress": self.seller_email,
-				"placeOfBusiness": self.seller_address_line_1,
 				"referenceNo": self.seller_reference_no,
 				"branchId": "",
 				"isCheckReferenceNo": "0",
@@ -808,6 +805,7 @@ def create_einvoice(sales_invoice):
 	einvoice.save()
 	frappe.db.commit()
 
+	efris_log_info("create_einvoice returning")
 	return einvoice
 
 def get_einvoice(sales_invoice):
@@ -980,6 +978,12 @@ def get_gst_accounts(
         
     gst_accounts = settings.get("gst_accounts", filters)
     result = frappe._dict()
+	
+    settings_form = get_link_to_form('ERP Champions Settings', 'ERP Champions Settings')
+    
+    if not gst_accounts:
+        frappe.throw(_("Cannot find GST Accounts under ERP Champions settings. Please check GST Settings under {}.").format(settings_form))
+    	
 
     for row in gst_accounts:
         for fieldname in GST_ACCOUNT_FIELDS:

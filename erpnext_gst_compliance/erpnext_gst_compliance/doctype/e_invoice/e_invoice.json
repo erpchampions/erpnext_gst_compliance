@@ -20,7 +20,6 @@
   "reverse_charge",
   "qrcode_path",
   "qrcode",
-  "igst_on_intra",
   "column_break_6",
   "ecommerce_gstin",
   "invoice",
@@ -32,12 +31,7 @@
   "seller_gstin",
   "seller_legal_name",
   "seller_trade_name",
-  "seller_address_line_1",
-  "seller_address_line_2",
   "column_break_20",
-  "seller_location",
-  "seller_pincode",
-  "seller_state_code",
   "seller_phone",
   "seller_email",
   "buyer_details_section",
@@ -70,27 +64,15 @@
   "item_details_section",
   "items",
   "item_totals_section",
-  "items_ass_value",
-  "items_cgst",
-  "items_sgst",
-  "items_igst",
   "column_break_76",
-  "items_cess",
-  "items_cess_nadv",
   "item_other_charges",
   "items_total_value",
   "value_details_section",
-  "ass_value",
-  "cgst_value",
-  "sgst_value",
-  "igst_value",
-  "cess_value",
   "base_invoice_value",
   "column_break_64",
   "invoice_discount",
   "other_charges",
   "round_off_amount",
-  "state_cess_value",
   "invoice_value",
   "payment_details_section",
   "payee_name",
@@ -157,14 +139,6 @@
    "fieldtype": "Check",
    "hidden": 1,
    "label": "Reverse Charge"
-  },
-  {
-   "default": "0",
-   "depends_on": "igst_on_intra",
-   "fieldname": "igst_on_intra",
-   "fieldtype": "Check",
-   "hidden": 1,
-   "label": "IGST on Intra"
   },
   {
    "fieldname": "column_break_6",
@@ -238,35 +212,6 @@
    "fieldname": "seller_trade_name",
    "fieldtype": "Data",
    "label": "Trade Name"
-  },
-  {
-   "fieldname": "seller_address_line_1",
-   "fieldtype": "Data",
-   "label": "Address Line 1",
-   "reqd": 1
-  },
-  {
-   "depends_on": "seller_address_line_2",
-   "fieldname": "seller_address_line_2",
-   "fieldtype": "Data",
-   "label": "Address Line 2"
-  },
-  {
-   "fieldname": "seller_location",
-   "fieldtype": "Data",
-   "label": "Location",
-   "reqd": 1
-  },
-  {
-   "fieldname": "seller_pincode",
-   "fieldtype": "Data",
-   "label": "Pincode"
-  },
-  {
-   "fieldname": "seller_state_code",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "State Code"
   },
   {
    "depends_on": "seller_phone",
@@ -380,47 +325,6 @@
    "label": "Summary"
   },
   {
-   "fieldname": "ass_value",
-   "fieldtype": "Currency",
-   "hidden": 1,
-   "label": "Assessable Value",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
-   "fieldname": "cgst_value",
-   "fieldtype": "Currency",
-   "hidden": 1,
-   "label": "CGST Value",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
-   "fieldname": "sgst_value",
-   "fieldtype": "Currency",
-   "hidden": 1,
-   "label": "SGST Value",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
-   "fieldname": "igst_value",
-   "fieldtype": "Currency",
-   "hidden": 1,
-   "label": "IGST Value",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
-   "depends_on": "cess_value",
-   "fieldname": "cess_value",
-   "fieldtype": "Currency",
-   "hidden": 1,
-   "label": "Cess Value",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
    "fieldname": "base_invoice_value",
    "fieldtype": "Currency",
    "hidden": 1,
@@ -461,15 +365,6 @@
    "fieldtype": "Currency",
    "hidden": 1,
    "label": "Invoice Value",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
-   "depends_on": "state_cess_value",
-   "fieldname": "state_cess_value",
-   "fieldtype": "Currency",
-   "hidden": 1,
-   "label": "State Cess Value",
    "non_negative": 1,
    "precision": "2"
   },
@@ -831,55 +726,8 @@
    "print_hide": 1
   },
   {
-   "fieldname": "items_igst",
-   "fieldtype": "Currency",
-   "hidden": 1,
-   "label": "IGST",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
-   "fieldname": "items_ass_value",
-   "fieldtype": "Currency",
-   "hidden": 1,
-   "label": "Taxable Value",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
-   "fieldname": "items_cgst",
-   "fieldtype": "Currency",
-   "hidden": 1,
-   "label": "CGST",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
-   "fieldname": "items_sgst",
-   "fieldtype": "Currency",
-   "hidden": 1,
-   "label": "SGST",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
    "fieldname": "column_break_76",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "items_cess",
-   "fieldtype": "Currency",
-   "hidden": 1,
-   "label": "Cess",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
-   "fieldname": "items_cess_nadv",
-   "fieldtype": "Currency",
-   "label": "Cess Non-Advolem",
-   "non_negative": 1,
-   "precision": "2"
   },
   {
    "fieldname": "item_other_charges",
@@ -912,7 +760,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-09-25 17:42:57.950630",
+ "modified": "2023-09-28 23:50:29.785049",
  "modified_by": "Administrator",
  "module": "ERPNext GST Compliance",
  "name": "E Invoice",

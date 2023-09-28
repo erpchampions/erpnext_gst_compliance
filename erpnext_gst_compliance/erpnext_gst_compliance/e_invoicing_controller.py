@@ -34,9 +34,9 @@ def generate_irn(sales_invoice):
 	success, errors = connector.generate_irn(einvoice)
 
 	if not success:
-		frappe.throw(errors, title=_('IRN Generation Failed'), as_list=1)
+		frappe.throw(errors, title=_('EFRIS Generation Failed'), as_list=1)
 	else:
-		frappe.msgprint(_("IRN Generated Successfully."), alert=1)
+		frappe.msgprint(_("EFRIS Generated Successfully."), alert=1)
 
 	return success
 
@@ -44,7 +44,7 @@ def validate_irn_generation(sales_invoice):
 	if sales_invoice.e_invoice:
 		irn = frappe.db.get_value('E Invoice', sales_invoice.e_invoice, 'irn')
 		if irn:
-			msg = _('IRN is already generated for the Sales Invoice.') + ' '
+			msg = _('EFRIS is already generated for the Sales Invoice.') + ' '
 			msg += _('Check E-Invoice {} for more details.').format(get_link_to_form('E Invoice', sales_invoice.e_invoice))
 			frappe.throw(msg=msg, title=_('Invalid Request'))
 
@@ -58,9 +58,9 @@ def cancel_irn(sales_invoice, reason, remark):
 	success, errors = connector.cancel_irn(einvoice, reason, remark)
 
 	if not success:
-		frappe.throw(errors, title=_('IRN Cancellation Failed'), as_list=1)
+		frappe.throw(errors, title=_('EFRIS Cancellation Failed'), as_list=1)
 	else:
-		frappe.msgprint(_("IRN Cancelled Successfully."), alert=1)
+		frappe.msgprint(_("EFRIS Cancelled Successfully."), alert=1)
 
 	return success
 
