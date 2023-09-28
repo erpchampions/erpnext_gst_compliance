@@ -6,6 +6,7 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "efris_settings_tab",
   "enabled",
   "sandbox_mode",
   "credentials",
@@ -85,12 +86,17 @@
    "fieldtype": "Table",
    "label": "GST Accounts",
    "options": "ERP Champions GST Account"
+  },
+  {
+   "fieldname": "efris_settings_tab",
+   "fieldtype": "Tab Break",
+   "label": "EFRIS Settings"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-09-20 08:04:47.898663",
+ "modified": "2023-09-29 00:19:20.050756",
  "modified_by": "Administrator",
  "module": "Erp Champions Integration",
  "name": "ERP Champions Settings",

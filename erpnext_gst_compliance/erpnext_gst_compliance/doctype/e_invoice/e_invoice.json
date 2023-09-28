@@ -68,12 +68,10 @@
   "item_other_charges",
   "items_total_value",
   "value_details_section",
-  "base_invoice_value",
   "column_break_64",
   "invoice_discount",
   "other_charges",
   "round_off_amount",
-  "invoice_value",
   "payment_details_section",
   "payee_name",
   "account_detail",
@@ -325,14 +323,6 @@
    "label": "Summary"
   },
   {
-   "fieldname": "base_invoice_value",
-   "fieldtype": "Currency",
-   "hidden": 1,
-   "label": "Invoice Value (Company Currency)",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
    "fieldname": "column_break_64",
    "fieldtype": "Column Break"
   },
@@ -357,14 +347,6 @@
    "fieldtype": "Currency",
    "hidden": 1,
    "label": "Round Off Amount",
-   "non_negative": 1,
-   "precision": "2"
-  },
-  {
-   "fieldname": "invoice_value",
-   "fieldtype": "Currency",
-   "hidden": 1,
-   "label": "Invoice Value",
    "non_negative": 1,
    "precision": "2"
   },
@@ -760,7 +742,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-09-28 23:50:29.785049",
+ "modified": "2023-09-29 00:05:45.378100",
  "modified_by": "Administrator",
  "module": "ERPNext GST Compliance",
  "name": "E Invoice",

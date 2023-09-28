@@ -55,21 +55,36 @@ class EInvoice(Document):
 
 	@frappe.whitelist()
 	def fetch_invoice_details(self):
-     
+	
 		self.set_sales_invoice()
+		efris_log_info("set_sales_invoice OK")
+		
 		self.set_invoice_type()
+		efris_log_info("set_invoice_type OK")
+		
 		self.set_supply_type()
+		efris_log_info("set_supply_type OK")
+		
+		self.set_basic_information()
+		efris_log_info("set_basic_information OK")
   
 		self.set_seller_details()
+		efris_log_info("set_seller_details OK")
+
 		self.set_buyer_details()
+		efris_log_info("set_buyer_details OK")
+		#self.set_buyer_extend()
+
+
 		self.set_item_details()
+		efris_log_info("set_item_details OK")
 		#self.set_value_details()
-  
-		# Additional methods
-		self.set_basic_information()
-		self.set_buyer_extend()
-		self.set_summary_details()
 		self.set_tax_details()
+		efris_log_info("set_tax_details OK")
+		
+		self.set_summary_details()
+		efris_log_info("set_summary_details OK")
+		
   
 	def set_basic_information(self):
      
@@ -109,29 +124,19 @@ class EInvoice(Document):
 		self.meterStatus = ""
   
 	def set_summary_details(self):
-		self.netAmount = self.sales_invoice.net_total
+		self.net_amount = self.sales_invoice.net_total
 		if len(self.sales_invoice.taxes) > 0:
-			self.taxAmount = self.sales_invoice.taxes[0].tax_amount
+			self.tax_amount = self.sales_invoice.taxes[0].tax_amount
 		else:
-			self.taxAmount = 0
+			self.tax_amount = 0
 		
 		self.gross_amount = self.sales_invoice.grand_total
 		self.item_count = len(self.sales_invoice.items)
-		self.modeCode = 1 # Hardcode for now
-		self.remarks = "Test Askcc invoice"
-		self.qrCode = ""
+		self.mode_code = 1 # Hardcode for now
+		self.remarks = ""
+		self.qr_code = ""
 
-		"""
-		ERP Champions: Mimic the doctype structure as customized for EFRIS
-		set_basic_information()
-		set_seller_details()
-		set_buyer_details()
-		set_buyer_extend() #skip for phase 1
-		set_item_details()
-		set_tax_details()
-		set_summary_details()
 
-		"""
 
 
 	def set_sales_invoice(self):
@@ -153,6 +158,7 @@ class EInvoice(Document):
   
 	def set_tax_details(self):
      
+		# MOKI TODO: more work here to handle all  tax rate types (Standard, Excempt, 0-rated,..)
 		if len(self.sales_invoice.taxes) > 0 and len(self.taxes) < 1:
 			taxes = frappe._dict({
 				"tax_category_code" : "01",
@@ -168,8 +174,7 @@ class EInvoice(Document):
 		else:
 			return
 		
-		
-
+	
 	def set_seller_details(self):
 		company_address = self.sales_invoice.company_address
 		if not company_address:
@@ -231,69 +236,25 @@ class EInvoice(Document):
 		#elif gst_category == 'Foreigner':
 		#elif gst_category == 'B2G': 
 
-		#if not tax_id:
-		#	frappe.throw(_('Tax ID must be set to be able to generate e-invoice.'))
-
-
-		# mandatory_field_label_map = {
-		# 	'gstin': 'GSTIN',
-		# 	'address_line1': 'Address Lines',
-		# 	'city': 'City',
-		# 	'pincode': 'Pincode',
-		# 	'gst_state_number': 'State Code',
-		# 	'email_id': 'Email Address',
-		# 	'phone': 'Phone'
-		# }
-		# for field, field_label in mandatory_field_label_map.items():
-		# 	if field == 'gstin':
-		# 		if not buyer_address.gstin and not is_export:
-		# 			frappe.throw(_('Customer address {} must have {} set to be able to generate e-invoice.')
-		# 				.format(customer_address, field_label))
-		# 		continue
-
-		# 	if not buyer_address[field]:
-		# 		frappe.throw(_('Customer address {} must have {} set to be able to generate e-invoice.')
-		# 			.format(customer_address, field_label))
-
+		
 		self.buyer_legal_name = customer.customer_name #self.sales_invoice.customer
-		frappe.log_error("self.buyer_legal_name: " + str(self.buyer_legal_name))
-		is_export = self.supply_type == 'EXPWOP'
-
-		#if customer_address:
-		#	frappe.throw(_('Customer address must be set to be able to generate e-invoice.'))
+		#frappe.log_error("self.buyer_legal_name: " + str(self.buyer_legal_name))
 
 		
-			#buyer_address = frappe.get_all('Address', {'name': customer_address}, ['*'])[0]
-			#self.buyer_gstin = buyer_address.gstin
-			# self.buyer_location = buyer_address.city
-			# self.buyer_pincode = buyer_address.pincode
-			# self.buyer_address_line_1 = buyer_address.address_line1
-			# self.buyer_address_line_2 = buyer_address.address_line2
-			# self.buyer_state_code = buyer_address.gst_state_number
-			# self.buyer_place_of_supply = buyer_address.gst_state_number
-			# #Added fields
-			# self.buyer_email = buyer_address.email_id
-		# self.buyer_location = "test"
-		# self.buyer_pincode = "123"
-		# self.buyer_address_line_1 = "test"
-		# self.buyer_address_line_2 = "test"
-		# self.buyer_state_code = "32"
-		
-		buyer_nin = frappe.get_list("Customer", fields="*", filters={'name':self.sales_invoice.customer})[0].nin
-		self.buyerNinBrn = "" if buyer_nin is None else  buyer_nin
-		pass_num = frappe.get_list("Customer", fields="*", filters={'name':self.sales_invoice.customer})[0].buyer_pass_num
-		self.buyerPassportNum = "" if pass_num is None else  pass_num
+		self.buyer_nin_or_brn = customer.nin_or_brn 
+		#pass_num = frappe.get_list("Customer", fields="*", filters={'name':self.sales_invoice.customer})[0].buyer_pass_num
+		#self.buyerPassportNum = "" if pass_num is None else  pass_num
 		#self.buyer_phone = buyer_address.phone # Picked from customer phone field
-		self.buyerCitizenship = "" # Hardcode for now
-		self.buyerSector = "" # Hardcode for now
-		self.buyerReferenceNo = "" # Hardcode for now
-		self.nonResidentFlag = 0 # Hardcode for now
+		self.buyer_citizenship = "" # Hardcode for now
+		self.buyer_sector = "" # Hardcode for now
+		self.buyer_reference_no = "" # Hardcode for now
+		self.non_resident_flag = 0 # Hardcode for now
 
-		if is_export:
-			self.buyer_gstin = 'URP'
-			self.buyer_state_code = 96
-			self.buyer_pincode = 999999
-			self.buyer_place_of_supply = 96
+		#if is_export:
+			#self.buyer_gstin = 'URP'
+			#self.buyer_state_code = 96
+			#self.buyer_pincode = 999999
+		#	self.buyer_place_of_supply = 96
 	
 	def set_shipping_details(self):
 		shipping_address_name = self.sales_invoice.shipping_address_name
@@ -371,19 +332,19 @@ class EInvoice(Document):
 			})
 			frappe.log_error(title="Einvoice Item before tax set", message=einvoice_item)
    
-			self.set_item_tax_details(einvoice_item)
+			# self.set_item_tax_details(einvoice_item)
 
-			einvoice_item.total_item_value = abs(
-				einvoice_item.taxable_value + einvoice_item.igst_amount +
-				einvoice_item.sgst_amount + einvoice_item.cgst_amount + 
-				einvoice_item.cess_amount + einvoice_item.cess_nadv_amount +
-				einvoice_item.other_charges
-			)
+			# einvoice_item.total_item_value = abs(
+			# 	einvoice_item.taxable_value + einvoice_item.igst_amount +
+			# 	einvoice_item.sgst_amount + einvoice_item.cgst_amount + 
+			# 	einvoice_item.cess_amount + einvoice_item.cess_nadv_amount +
+			# 	einvoice_item.other_charges
+			# )
 			self.append('items', einvoice_item)
    
 			frappe.log_error(title="Einvoice Item before tax set", message=einvoice_item)
 
-		self.set_calculated_item_totals()
+		#self.set_calculated_item_totals()
 
 	def update_items_from_invoice(self):
 		item_taxes = loads(self.sales_invoice.taxes[0].item_wise_tax_detail)
@@ -424,75 +385,75 @@ class EInvoice(Document):
 
 		#self.set_calculated_item_totals()
 
-	def set_calculated_item_totals(self):
-		item_total_fields = ['items_ass_value', 'items_igst', 'items_sgst', 'items_cgst',
-			'items_cess', 'items_cess_nadv', 'items_other_charges', 'items_total_value']
+	# def set_calculated_item_totals(self):
+	# 	item_total_fields = ['items_ass_value', 'items_igst', 'items_sgst', 'items_cgst',
+	# 		'items_cess', 'items_cess_nadv', 'items_other_charges', 'items_total_value']
 
-		for field in item_total_fields:
-			self.set(field, 0)
+	# 	for field in item_total_fields:
+	# 		self.set(field, 0)
 
-		for item in self.items:
-			self.items_ass_value += item.taxable_value
-			self.items_igst += item.igst_amount
-			self.items_sgst += item.sgst_amount
-			self.items_cess += item.cess_amount
-			self.items_cess_nadv += item.cess_nadv_amount
-			self.items_other_charges += item.other_charges
-			self.items_total_value += item.total_item_value
+	# 	for item in self.items:
+	# 		self.items_ass_value += item.taxable_value
+	# 		self.items_igst += item.igst_amount
+	# 		self.items_sgst += item.sgst_amount
+	# 		self.items_cess += item.cess_amount
+	# 		self.items_cess_nadv += item.cess_nadv_amount
+	# 		self.items_other_charges += item.other_charges
+	# 		self.items_total_value += item.total_item_value
 
-	def set_item_tax_details(self, item):
-		efris_log_info("set_item_tax_details()..get_gst_accounts()")
-		gst_accounts = get_gst_accounts(self.company)
-		efris_log_info(gst_accounts)
-		gst_accounts_list = [d for accounts in gst_accounts.values() for d in accounts if d]
+	# def set_item_tax_details(self, item):
+	# 	efris_log_info("set_item_tax_details()..get_gst_accounts()")
+	# 	gst_accounts = get_gst_accounts(self.company)
+	# 	efris_log_info(gst_accounts)
+	# 	gst_accounts_list = [d for accounts in gst_accounts.values() for d in accounts if d]
 
-		for attr in ['cgst_amount',  'sgst_amount', 'igst_amount',
-			'cess_rate', 'cess_amount', 'cess_nadv_amount', 'other_charges']:
-			item.update({ attr: 0 })
+	# 	for attr in ['cgst_amount',  'sgst_amount', 'igst_amount',
+	# 		'cess_rate', 'cess_amount', 'cess_nadv_amount', 'other_charges']:
+	# 		item.update({ attr: 0 })
 
-		for t in self.sales_invoice.taxes:
-			is_applicable = t.tax_amount and t.account_head in gst_accounts_list
-			if is_applicable:
-				# this contains item wise tax rate & tax amount (incl. discount)
-				item_tax_detail = loads(t.item_wise_tax_detail).get(item.item_code or item.item_name)
+	# 	for t in self.sales_invoice.taxes:
+	# 		is_applicable = t.tax_amount and t.account_head in gst_accounts_list
+	# 		if is_applicable:
+	# 			# this contains item wise tax rate & tax amount (incl. discount)
+	# 			item_tax_detail = loads(t.item_wise_tax_detail).get(item.item_code or item.item_name)
 
-				item_tax_rate = item_tax_detail[0]
-				# item tax amount excluding discount amount
-				item_tax_amount = (item_tax_rate / 100) * item.taxable_value
+	# 			item_tax_rate = item_tax_detail[0]
+	# 			# item tax amount excluding discount amount
+	# 			item_tax_amount = (item_tax_rate / 100) * item.taxable_value
 
-				if t.account_head in gst_accounts.cess_account:
-					item_tax_amount_after_discount = item_tax_detail[1]
-					if t.charge_type == 'On Item Quantity':
-						item.cess_nadv_amount += abs(item_tax_amount_after_discount)
-					else:
-						item.cess_rate += item_tax_rate
-						item.cess_amount += abs(item_tax_amount_after_discount)
+	# 			if t.account_head in gst_accounts.cess_account:
+	# 				item_tax_amount_after_discount = item_tax_detail[1]
+	# 				if t.charge_type == 'On Item Quantity':
+	# 					item.cess_nadv_amount += abs(item_tax_amount_after_discount)
+	# 				else:
+	# 					item.cess_rate += item_tax_rate
+	# 					item.cess_amount += abs(item_tax_amount_after_discount)
 
-				for tax_type in ['igst', 'cgst', 'sgst']:
-					if t.account_head in gst_accounts[f'{tax_type}_account']:
-						# item.gst_rate += item_tax_rate
-						amt_fieldname = f'{tax_type}_amount'
-						item.update({
-							amt_fieldname: item.get(amt_fieldname, 0) + abs(item_tax_amount)
-						})
-			else:
-				# TODO: other charges per item
-				pass
+	# 			for tax_type in ['igst', 'cgst', 'sgst']:
+	# 				if t.account_head in gst_accounts[f'{tax_type}_account']:
+	# 					# item.gst_rate += item_tax_rate
+	# 					amt_fieldname = f'{tax_type}_amount'
+	# 					item.update({
+	# 						amt_fieldname: item.get(amt_fieldname, 0) + abs(item_tax_amount)
+	# 					})
+	# 		else:
+	# 			# TODO: other charges per item
+	# 			pass
 
-	def set_value_details(self):
-		self.ass_value = abs(sum([i.taxable_value for i in self.get('items')]))
-		self.invoice_discount = 0
-		self.round_off_amount = self.sales_invoice.base_rounding_adjustment
-		self.base_invoice_value = abs(self.sales_invoice.base_rounded_total) or abs(self.sales_invoice.base_grand_total)
-		self.invoice_value = abs(self.sales_invoice.rounded_total) or abs(self.sales_invoice.grand_total)
-		self.net_amount = self.sales_invoice.net_total
+	# def set_value_details(self):
+	# 	self.ass_value = abs(sum([i.taxable_value for i in self.get('items')]))
+	# 	self.invoice_discount = 0
+	# 	self.round_off_amount = self.sales_invoice.base_rounding_adjustment
+	# 	self.base_invoice_value = abs(self.sales_invoice.base_rounded_total) or abs(self.sales_invoice.base_grand_total)
+	# 	self.invoice_value = abs(self.sales_invoice.rounded_total) or abs(self.sales_invoice.grand_total)
+	# 	self.net_amount = self.sales_invoice.net_total
     
-		if len(self.sales_invoice.taxes):
-			self.tax_amount = self.sales_invoice.taxes[0].tax_amount
-		else:
-			self.tax_amount = 0
+	# 	if len(self.sales_invoice.taxes):
+	# 		self.tax_amount = self.sales_invoice.taxes[0].tax_amount
+	# 	else:
+	# 		self.tax_amount = 0
 
-		self.set_invoice_tax_details()
+	# 	self.set_invoice_tax_details()
 
 	def set_invoice_tax_details(self):
 		efris_log_info("set_invoice_tax_details()..get_gst_accounts()")
@@ -625,20 +586,15 @@ class EInvoice(Document):
 		return {
 			"buyerDetails": {
 				"buyerTin": self.buyer_gstin,
-				"buyerNinBrn": self.buyerNinBrn,
-				"buyerPassportNum": self.buyerPassportNum,
+				"buyerNinBrn": self.buyer_nin_or_brn,
+				"buyerPassportNum": "",
 				"buyerLegalName": self.buyer_legal_name,
 				"buyerBusinessName": self.buyer_legal_name,
-				"buyerAddress": self.buyer_location,
-				"buyerEmail": self.buyer_email,
-				"buyerMobilePhone": self.buyer_phone,
-				"buyerLinePhone": "",
-				"buyerPlaceOfBusi": self.buyer_address_line_1,
 				"buyerType": self.supply_type,
-				"buyerCitizenship": self.buyerCitizenship,
-				"buyerSector": self.buyerSector,
-				"buyerReferenceNo": self.buyerReferenceNo,
-				"nonResidentFlag": self.nonResidentFlag
+				"buyerCitizenship": self.buyer_citizenship,
+				"buyerSector": self.buyer_sector,
+				"buyerReferenceNo": self.buyer_reference_no,
+				"nonResidentFlag": self.non_resident_flag
 			}
 		}
 
@@ -703,9 +659,9 @@ class EInvoice(Document):
 		return {
 			"taxDetails": [{
 				"taxCategoryCode": "01",
-				"netAmount": str(self.netAmount),
+				"netAmount": str(self.net_amount),
 				"taxRate": str(self.sales_invoice.taxes[0].rate/100),
-				"taxAmount": str(self.taxAmount),
+				"taxAmount": str(self.tax_amount),
 				"grossAmount": str(self.gross_amount),
 				"exciseUnit": "",
 				"exciseCurrency": "",
@@ -716,11 +672,11 @@ class EInvoice(Document):
 	def get_summary(self):
 		return {
 			"summary": {
-				"netAmount": str(self.netAmount),
-				"taxAmount": str(self.taxAmount),
+				"netAmount": str(self.net_amount),
+				"taxAmount": str(self.tax_amount),
 				"grossAmount": str(self.gross_amount),
 				"itemCount": str(self.item_count),
-				"modeCode": str(self.modeCode),
+				"modeCode": str(self.mode_code),
 				"remarks": "",
 				"qrCode": ""
 			}
