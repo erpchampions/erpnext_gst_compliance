@@ -321,7 +321,7 @@ class EInvoice(Document):
 				'gst_hsn_code': item.gst_hsn_code,
 				'quantity': abs(item.qty),
 				'discount': 0,
-				'unit': item.uom, # Hardcode value for now
+				'unit': item.uom, 
 				'rate': item.rate,
 				'tax': round(item_taxes[item.item_code][1], 2),
 				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
@@ -615,13 +615,17 @@ class EInvoice(Document):
 	def get_good_details(self):
 		item_list = []
 		for row in self.items:
-			frappe.log_error(title="Item details", message=row.as_dict())
-   
+			#frappe.log_error(title="Item details", message=row.as_dict())
+			
+			inv_uom = frappe.get_doc("UOM",row.unit)
+			efris_uom_code = inv_uom.efris_uom_code
+
+
 			item = {
 				"item": row.item_name,
 				"itemCode": row.item_code,
 				"qty": str(row.quantity),
-				"unitOfMeasure": "101",
+				"unitOfMeasure": efris_uom_code,
 				"unitPrice": str(row.rate),
 				"total": str(row.amount),
 				"taxRate": str(row.gst_rate), # Get from Uganda tax template
@@ -720,16 +724,21 @@ class EInvoice(Document):
 			frappe.throw(error_list, title=_('E Invoice Validation Failed'), as_list=1)
 
 	def validate_uom(self):
-		return # MOKI, temp deactivate validations
-		valid_uoms = ['BAG', 'BAL', 'BDL', 'BKL', 'BOU', 'BOX', 'BTL', 'BUN', 'CAN', 'CCM', 'CMS', 'CBM', 'CTN', 'DOZ', 'DRM', 'GGK', 'GMS', 'GRS', 'GYD', 'KGS', 'KLR', 'KME', 'LTR', 'MLS', 'MLT', 'MTR', 'MTS', 'NOS', 'OTH', 'PAC', 'PCS', 'PRS', 'QTL', 'ROL', 'SET', 'SQF', 'SQM', 'SQY', 'TBS', 'TGM', 'THD', 'TON', 'TUB', 'UGS', 'UNT', 'YD']
-		for item in self.items:
-			if item.unit and item.unit.upper() not in valid_uoms:
+		for item in self.items:			
+			
+			inv_uom = frappe.get_doc("UOM",item.unit)
+			efris_log_info("item.unit:" + str(item.unit))
+			if not inv_uom:
+				frappe.throw("Cannot find in UOM List. Unit:" + item.unit)
+			efris_uom_code = inv_uom.efris_uom_code			
+			efris_log_info("efris_uom_code:" + str(efris_uom_code))
+
+			if not efris_uom_code:
 				msg = _('Row #{}: {} has invalid UOM set.').format(item.idx, item.item_name) + ' '
-				msg += _('Please set proper UOM as defined by e-invoice portal.')
+				msg += _('Please set EFRIS UOM Code on UOM.')
 				msg += '<br><br>'
-				uom_list_link = '<a href="https://einvoice1.gst.gov.in/Others/MasterCodes" target="_blank">this</a>'
-				msg += _('You can refer {} link to check valid UOMs defined by e-invoice portal.').format(uom_list_link)
 				frappe.throw(msg, title=_('Invalid Item UOM'))
+
 
 	def set_eway_bill_details(self, details):
 		self.sales_invoice = frappe._dict()
