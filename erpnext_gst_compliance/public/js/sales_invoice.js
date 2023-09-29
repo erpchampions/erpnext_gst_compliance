@@ -178,21 +178,34 @@ const get_einvoice_eligibility = async (doc) => {
 	return invoice_eligible;
 }
 
+
+/* 101:Return of products due to
+expiry or damage, etc.
+102:Cancellation of the
+purchase.
+103:Invoice amount wrongly stated due to miscalculation
+
+of price, tax, or discounts,
+etc.
+104:Partial or complete waive off of the product sale after the invoice is generated and
+sent to customer.
+105:Others (Please specify) */
+
 const get_irn_cancellation_fields = () => {
 	return [
 		{
-			"label": "Reason",
+			"label": "Reason Code",
 			"fieldname": "reason",
 			"fieldtype": "Select",
 			"reqd": 1,
-			"default": "1-Duplicate",
-			"options": ["1-Duplicate", "2-Data Entry Error", "3-Order Cancelled", "4-Other"]
+			"default": "102-Cancellation of the purchase",
+			"options": ["102-Cancellation of the purchase", "103-Invoice amount wrongly stated due to miscalculation", "104-Partial or complete waive off of the product", "105-Others (Please specify in Remarks below)"]
 		},
 		{
 			"label": "Remark",
 			"fieldname": "remark",
 			"fieldtype": "Data",
-			"reqd": 1
+			"reqd": 0
 		}
 	];
 }

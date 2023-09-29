@@ -159,16 +159,18 @@ class EInvoice(Document):
 	def set_tax_details(self):
      
 		# MOKI TODO: more work here to handle all  tax rate types (Standard, Excempt, 0-rated,..)
-		if len(self.sales_invoice.taxes) > 0 and len(self.taxes) < 1:
+		if len(self.sales_invoice.taxes) > 0: #and len(self.taxes) < 1:
+			
+			
 			taxes = frappe._dict({
 				"tax_category_code" : "01",
 				"net_amount" : self.sales_invoice.net_total,
 				"tax_rate" : self.sales_invoice.taxes[0].rate/100,
 				"tax_amount" : self.sales_invoice.taxes[0].tax_amount,
-				"gross_amount" : self.sales_invoice.taxes[0].total,
-				"excise_unit" : "101",
-				"excise_currency" : "UGX",
-				"tax_rate_name" : "123"
+				"gross_amount" : self.sales_invoice.grand_total,
+				"excise_unit" : "",
+				"excise_currency" : "",
+				"tax_rate_name" : ""
 			})
 			self.append("taxes", taxes)
 		else:
@@ -320,13 +322,11 @@ class EInvoice(Document):
 				'is_service_item': is_service_item,
 				'gst_hsn_code': item.gst_hsn_code,
 				'quantity': abs(item.qty),
-				'discount': 0,
 				'unit': item.uom, 
 				'rate': item.rate,
 				'tax': round(item_taxes[item.item_code][1], 2),
 				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
 				'amount': item.amount,
-				'taxable_value': abs(item.amount),
 				'order_number': i,
 				'hsn_code_description': frappe.get_doc("GST HSN Code", item.gst_hsn_code).commodity_name
 			})
@@ -355,7 +355,7 @@ class EInvoice(Document):
 				frappe.throw(_('Row #{}: Item {} must have HSN code set to be able to generate e-invoice.')
 					.format(item.idx, item.item_code))
 
-			is_service_item = item.gst_hsn_code[:2] == "99"
+			is_service_item = item.gst_hsn_code[:2] == "99" #TODO: Change to EFRI logic
 
 			einvoice_item.update({
 				'item_code': item.item_code,
@@ -363,12 +363,10 @@ class EInvoice(Document):
 				'is_service_item': is_service_item,
 				'gst_hsn_code': item.gst_hsn_code,
 				'quantity': abs(item.qty),
-				'discount': 0,
 				'unit': item.uom,
 				'rate': item.rate,
 				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
 				'amount': item.amount,
-				'taxable_value': abs(item.amount),
 				'tax': round(item_taxes[item.item_code][1], 2),
     			'order_number': i,
 				'hsn_code_description': frappe.get_doc("GST HSN Code", item.gst_hsn_code).commodity_name
@@ -385,105 +383,7 @@ class EInvoice(Document):
 
 		#self.set_calculated_item_totals()
 
-	# def set_calculated_item_totals(self):
-	# 	item_total_fields = ['items_ass_value', 'items_igst', 'items_sgst', 'items_cgst',
-	# 		'items_cess', 'items_cess_nadv', 'items_other_charges', 'items_total_value']
-
-	# 	for field in item_total_fields:
-	# 		self.set(field, 0)
-
-	# 	for item in self.items:
-	# 		self.items_ass_value += item.taxable_value
-	# 		self.items_igst += item.igst_amount
-	# 		self.items_sgst += item.sgst_amount
-	# 		self.items_cess += item.cess_amount
-	# 		self.items_cess_nadv += item.cess_nadv_amount
-	# 		self.items_other_charges += item.other_charges
-	# 		self.items_total_value += item.total_item_value
-
-	# def set_item_tax_details(self, item):
-	# 	efris_log_info("set_item_tax_details()..get_gst_accounts()")
-	# 	gst_accounts = get_gst_accounts(self.company)
-	# 	efris_log_info(gst_accounts)
-	# 	gst_accounts_list = [d for accounts in gst_accounts.values() for d in accounts if d]
-
-	# 	for attr in ['cgst_amount',  'sgst_amount', 'igst_amount',
-	# 		'cess_rate', 'cess_amount', 'cess_nadv_amount', 'other_charges']:
-	# 		item.update({ attr: 0 })
-
-	# 	for t in self.sales_invoice.taxes:
-	# 		is_applicable = t.tax_amount and t.account_head in gst_accounts_list
-	# 		if is_applicable:
-	# 			# this contains item wise tax rate & tax amount (incl. discount)
-	# 			item_tax_detail = loads(t.item_wise_tax_detail).get(item.item_code or item.item_name)
-
-	# 			item_tax_rate = item_tax_detail[0]
-	# 			# item tax amount excluding discount amount
-	# 			item_tax_amount = (item_tax_rate / 100) * item.taxable_value
-
-	# 			if t.account_head in gst_accounts.cess_account:
-	# 				item_tax_amount_after_discount = item_tax_detail[1]
-	# 				if t.charge_type == 'On Item Quantity':
-	# 					item.cess_nadv_amount += abs(item_tax_amount_after_discount)
-	# 				else:
-	# 					item.cess_rate += item_tax_rate
-	# 					item.cess_amount += abs(item_tax_amount_after_discount)
-
-	# 			for tax_type in ['igst', 'cgst', 'sgst']:
-	# 				if t.account_head in gst_accounts[f'{tax_type}_account']:
-	# 					# item.gst_rate += item_tax_rate
-	# 					amt_fieldname = f'{tax_type}_amount'
-	# 					item.update({
-	# 						amt_fieldname: item.get(amt_fieldname, 0) + abs(item_tax_amount)
-	# 					})
-	# 		else:
-	# 			# TODO: other charges per item
-	# 			pass
-
-	# def set_value_details(self):
-	# 	self.ass_value = abs(sum([i.taxable_value for i in self.get('items')]))
-	# 	self.invoice_discount = 0
-	# 	self.round_off_amount = self.sales_invoice.base_rounding_adjustment
-	# 	self.base_invoice_value = abs(self.sales_invoice.base_rounded_total) or abs(self.sales_invoice.base_grand_total)
-	# 	self.invoice_value = abs(self.sales_invoice.rounded_total) or abs(self.sales_invoice.grand_total)
-	# 	self.net_amount = self.sales_invoice.net_total
-    
-	# 	if len(self.sales_invoice.taxes):
-	# 		self.tax_amount = self.sales_invoice.taxes[0].tax_amount
-	# 	else:
-	# 		self.tax_amount = 0
-
-	# 	self.set_invoice_tax_details()
-
-	def set_invoice_tax_details(self):
-		efris_log_info("set_invoice_tax_details()..get_gst_accounts()")
-		gst_accounts = get_gst_accounts(self.company)
-		efris_log_info(gst_accounts)
-		gst_accounts_list = [d for accounts in gst_accounts.values() for d in accounts if d]
-
-		self.cgst_value = 0
-		self.sgst_value = 0
-		self.igst_value = 0
-		self.cess_value = 0
-		self.other_charges = 0
-		considered_rows = []
-
-		for t in self.sales_invoice.taxes:
-			tax_amount = t.base_tax_amount_after_discount_amount
-
-			if t.account_head in gst_accounts_list:
-				if t.account_head in gst_accounts.cess_account:
-					# using after discount amt since item also uses after discount amt for cess calc
-					self.cess_value += abs(t.base_tax_amount_after_discount_amount)
-
-				for tax in ['igst', 'cgst', 'sgst']:
-					if t.account_head in gst_accounts[f'{tax}_account']:
-						new_value = self.get(f'{tax}_value') + abs(tax_amount)
-						self.set(f'{tax}_value', new_value)
-
-					self.update_other_charges(t, gst_accounts_list, considered_rows)
-			else:
-				self.other_charges += abs(tax_amount)
+	
 	
 	def update_other_charges(self, tax_row, gst_accounts_list, considered_rows):
 		taxes = self.sales_invoice.get('taxes')

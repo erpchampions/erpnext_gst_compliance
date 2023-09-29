@@ -274,7 +274,7 @@ class ErpChampionsConnector:
 
 	@log_exception
 	def make_cancel_irn_request(self, reason, remark):
-		
+		efris_log_info ("make_cancel_irn_request. reason/remark" + str(reason) + "/" + str(remark) )
 		credit_note = {
 			"oriInvoiceId": self.einvoice.invoice_id,
 			"oriInvoiceNo": self.einvoice.irn,
@@ -287,7 +287,7 @@ class ErpChampionsConnector:
 			"contactMobileNum": "",
 			"contactEmail": "",
 			"source": "103",
-			"remarks": "Remarks",
+			"remarks": "Full Cancellation",
 			"sellersReferenceNo": self.einvoice.seller_reference_no
 		}
 		item_list = []
@@ -296,8 +296,8 @@ class ErpChampionsConnector:
 				"item": item.item_name,
 				"itemCode": item.item_name,
 				"qty": item.quantity,
-				"unitOfMeasure": "101",
-				"unitPrice": "15000.00",
+				"unitOfMeasure": frappe.get_doc("UOM",item.unit).efris_uom_code,
+				"unitPrice": item.rate,
 				"total": item.amount,
 				"taxRate": str(item.gst_rate),
 				"tax": item.tax,
