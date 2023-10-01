@@ -61,9 +61,7 @@ def cancel_irn(sales_invoice, reason, remark):
 		frappe.throw(errors, title=_('EFRIS Cancellation Failed'), as_list=1)
 	else:
 		msg = "EFRIS Credit Note Application Submitted Successfully." + "\n"
-		msg = msg + "Please note that EFRIS will only be cancelled after URA Approval." + "\n"
-		msg = msg + "A new EFRIS Credit Note Invoice will be created on approval." + "\n"
-		msg = msg + "To check approal status, press button \"EFRIS Approval Status\"" + "\n"
+		msg = msg + "EFRIS will only be cancelled after URA Approval." + "\n"
 
 		frappe.msgprint(_(msg), alert=1)
 
