@@ -32,6 +32,23 @@ frappe.ui.form.on('Sales Invoice', {
 			});
 		}
 
+		
+		if (!einvoice_status || einvoice_status == 'EFRIS Credit Note Pending') {
+			// Generate IRN (Invoice Reference Number)= EFRIS Fiscal Document Number (FDN)
+			add_einvoice_button(__('EFRIS Approval Status'), async () => {
+				if (frm.is_dirty()) return raise_form_is_dirty_error();
+
+				await frm.reload_doc();
+				frappe.call({
+					method: e_invoicing_controller + '.generate_irn_status_upd',
+					args: { sales_invoice: frm.doc },
+					callback: () => frm.reload_doc(),
+					error: () => frm.reload_doc(),
+					freeze: true
+				});
+			});
+		}
+
 
 		if (['EFRIS Generated', 'E-Way Bill Cancelled'].includes(einvoice_status)) {
 			// Cancel IRN
@@ -48,7 +65,7 @@ frappe.ui.form.on('Sales Invoice', {
 							method: e_invoicing_controller + '.cancel_irn',
 							args: {
 								sales_invoice: frm.doc,
-								reason: data.reason.split('-')[0],
+								reason: data.reason.split(':')[0],
 								remark: data.remark
 							},
 							freeze: true,

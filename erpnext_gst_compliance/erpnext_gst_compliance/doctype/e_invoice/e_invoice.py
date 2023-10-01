@@ -573,7 +573,7 @@ class EInvoice(Document):
 		}
 		
 	def get_tax_details(self):
-     
+		#TODO Support multiple tax categories
 		return {
 			"taxDetails": [{
 				"taxCategoryCode": "01",
