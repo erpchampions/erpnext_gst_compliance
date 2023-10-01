@@ -9,7 +9,7 @@ from json import dumps
 from pyqrcode import create as qrcreate
 from frappe.utils.data import get_link_to_form
 from erpnext_gst_compliance.utils import log_exception
-from erpnext_gst_compliance.efris_utils import efris_log_info
+from erpnext_gst_compliance.efris_utils import efris_log_info, get_ug_time_str
 from frappe.integrations.utils import make_post_request, make_get_request
 from frappe.utils.data import add_to_date, time_diff_in_seconds, now_datetime
 import erpnext_gst_compliance.efris_utils
@@ -182,7 +182,7 @@ class ErpChampionsConnector:
 			return False, response
 
 	def handle_successful_irn_generation(self, response):
-		status = 'IRN Generated'
+		status = 'EFRIS Generated'
 
 		# URA returned fields
 		irn = response["basicInformation"]["invoiceNo"]
@@ -278,7 +278,7 @@ class ErpChampionsConnector:
 		credit_note = {
 			"oriInvoiceId": self.einvoice.invoice_id,
 			"oriInvoiceNo": self.einvoice.irn,
-			"reasonCode": "102",
+			"reasonCode": reason,
 			"reason": "",
 			"applicationTime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
 			"invoiceApplyCategoryCode": "101",
@@ -287,7 +287,7 @@ class ErpChampionsConnector:
 			"contactMobileNum": "",
 			"contactEmail": "",
 			"source": "103",
-			"remarks": "Full Cancellation",
+			"remarks": remark,
 			"sellersReferenceNo": self.einvoice.seller_reference_no
 		}
 		item_list = []
@@ -382,7 +382,7 @@ class ErpChampionsConnector:
 			"branchId": ""
 		}})
   
-		frappe.log_error("Credit Note JSON BEFORE: ", credit_note)
+		#frappe.log_error("Credit Note JSON BEFORE: ", credit_note)
 		# Add needed fields
 
 		# Make fields negative
@@ -411,6 +411,7 @@ class ErpChampionsConnector:
 
 		status, response = erpnext_gst_compliance.efris_utils.make_post("T110", credit_note)
   
+		
 		sucess, errors = self.handle_irn_cancellation_response(status, response)
 		return sucess, errors
 
@@ -426,9 +427,18 @@ class ErpChampionsConnector:
 			return False, "Something went wrong"
 
 	def handle_successful_irn_cancellation(self, response):
-		self.einvoice.irn_cancelled = 1
-		self.einvoice.irn_cancel_date = datetime.now()
-		self.einvoice.status = 'IRN Cancelled'
+		
+		credit_note_appl_ref = response["referenceNo"]
+		efris_log_info("credit_note_appl_ref:" + str(credit_note_appl_ref))
+		self.einvoice.credit_note_application_ref_no =credit_note_appl_ref
+		#self.einvoice.irn_cancelled = 1
+		#self.einvoice.irn_cancel_date = datetime.now()
+		#self.einvoice.status = 'IRN Cancelled'
+		self.einvoice.credit_note_approval_status = "102:Submitted"
+		formatted_date = get_ug_time_str()
+		efris_log_info("formatted_date:" + str(formatted_date))
+		self.einvoice.credit_note_application_date =  formatted_date
+		self.einvoice.status = "EFRIS Credit Note Pending"
 		self.einvoice.flags.ignore_validate_update_after_submit = 1
 		self.einvoice.flags.ignore_permissions = 1
 		self.einvoice.save()

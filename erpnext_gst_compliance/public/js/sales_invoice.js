@@ -16,9 +16,9 @@ frappe.ui.form.on('Sales Invoice', {
 		
 		const e_invoicing_controller = 'erpnext_gst_compliance.erpnext_gst_compliance.e_invoicing_controller';
 
-		if (!einvoice_status || einvoice_status == 'IRN Pending') {
-			// Generate IRN
-			add_einvoice_button(__('Generate IRN'), async () => {
+		if (!einvoice_status || einvoice_status == 'EFRIS Pending') {
+			// Generate IRN (Invoice Reference Number)= EFRIS Fiscal Document Number (FDN)
+			add_einvoice_button(__('Generate EFRIS'), async () => {
 				if (frm.is_dirty()) return raise_form_is_dirty_error();
 
 				await frm.reload_doc();
@@ -33,14 +33,14 @@ frappe.ui.form.on('Sales Invoice', {
 		}
 
 
-		if (['IRN Generated', 'E-Way Bill Cancelled'].includes(einvoice_status)) {
+		if (['EFRIS Generated', 'E-Way Bill Cancelled'].includes(einvoice_status)) {
 			// Cancel IRN
 			const fields = get_irn_cancellation_fields();
 			const action = () => {
 				if (frm.is_dirty()) return raise_form_is_dirty_error();
 
 				const d = new frappe.ui.Dialog({
-					title: __("Cancel IRN"),
+					title: __("Cancel EFRIS"),
 					fields: fields,
 					primary_action: function() {
 						const data = d.get_values();
@@ -63,10 +63,10 @@ frappe.ui.form.on('Sales Invoice', {
 				});
 				d.show();
 			};
-			add_einvoice_button(__('Cancel IRN'), action);
+			add_einvoice_button(__('Cancel EFRIS'), action);
 		}
 
-		if (['IRN Generated', 'E-Way Bill Cancelled'].includes(einvoice_status)) {
+		if (['EFRIS Generated', 'E-Way Bill Cancelled'].includes(einvoice_status)) {
 			// Generate E-Way Bill
 			const action = () => {
 				const d = new frappe.ui.Dialog({
@@ -94,7 +94,8 @@ frappe.ui.form.on('Sales Invoice', {
 				d.show();
 			};
 
-			add_einvoice_button(__("Generate E-Way Bill"), action);
+		   //MOKI TODO: E-way bill activation in future
+			//add_einvoice_button(__("Generate E-Way Bill"), action);
 		}
 
 		// cancel ewaybill api is currently not supported by E-Invoice Portal
@@ -198,14 +199,15 @@ const get_irn_cancellation_fields = () => {
 			"fieldname": "reason",
 			"fieldtype": "Select",
 			"reqd": 1,
-			"default": "102-Cancellation of the purchase",
-			"options": ["102-Cancellation of the purchase", "103-Invoice amount wrongly stated due to miscalculation", "104-Partial or complete waive off of the product", "105-Others (Please specify in Remarks below)"]
+			"default": "102:Cancellation of the purchase",
+			"options": ["102:Cancellation of the purchase", "103:Invoice amount wrongly stated due to miscalculation", "104:Partial or complete waive off of the product", "105:Others (Please specify in Remarks below)"]
 		},
 		{
 			"label": "Remark",
 			"fieldname": "remark",
+			"default": "Cancellation of the purchase",
 			"fieldtype": "Data",
-			"reqd": 0
+			"reqd": 1
 		}
 	];
 }

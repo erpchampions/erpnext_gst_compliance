@@ -32,21 +32,21 @@ def setup_custom_fields():
 			dict(
 				fieldname='irn_cancel_date', label='IRN Cancelled On',
 				fieldtype='Data', read_only=1, insert_after='irn', hidden=0,
-				depends_on='eval: doc.einvoice_status == "IRN Cancelled"',
+				depends_on='eval: doc.einvoice_status == "EFRIS Cancelled"',
 				fetch_from='e_invoice.irn_cancel_date', no_copy=1, print_hide=1, translatable=0
 			),
 			
 			dict(
 				fieldname='ack_no', label='Ack. No.', fieldtype='Data',
 				read_only=1, insert_after='irn', no_copy=1, hidden=0,
-				depends_on='eval: doc.einvoice_status != "IRN Cancelled"',
+				depends_on='eval: doc.einvoice_status != "EFRIS Cancelled"',
 				fetch_from='e_invoice.ack_no', print_hide=1, translatable=0
 			),
 
 			dict(
 				fieldname='ack_date', label='Ack. Date', fieldtype='Data',
 				read_only=1, insert_after='ack_no', hidden=0,
-				depends_on='eval: doc.einvoice_status != "IRN Cancelled"',
+				depends_on='eval: doc.einvoice_status != "EFRIS Cancelled"',
 				fetch_from='e_invoice.ack_date', no_copy=1, print_hide=1, translatable=0
 			),
 
@@ -157,9 +157,9 @@ def update_sales_invoices():
 
 	print('Updating Sales Invoices...')
 	for invoice in einvoices:
-		einvoice_status = 'IRN Generated'
+		einvoice_status = 'EFRIS Generated'
 		if cint(invoice.irn_cancelled):
-			einvoice_status = 'IRN Cancelled'
+			einvoice_status = 'EFRIS Cancelled'
 		if invoice.ewaybill:
 			einvoice_status = 'E-Way Bill Generated'
 		if cint(invoice.eway_bill_cancelled):

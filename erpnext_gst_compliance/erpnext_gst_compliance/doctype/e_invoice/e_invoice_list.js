@@ -6,10 +6,11 @@ frappe.listview_settings['E Invoice'] = {
 	has_indicator_for_draft: 1,
 	get_indicator: function(doc) {
 		var status_color = {
-			"IRN Pending": "yellow",
-			"IRN Generated": "green",
+			"EFRIS Pending": "yellow",
+			"EFRIS Generated": "green",
+			"EFRIS Credit Note Pending": "orange",
 			"E-Way Bill Generated": "green",
-			"IRN Cancelled": "red",
+			"EFRIS Cancelled": "red",
 			"E-Way Bill Cancelled": "red",
             "Cancelled": "red"
 		};

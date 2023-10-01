@@ -60,21 +60,26 @@ def cancel_irn(sales_invoice, reason, remark):
 	if not success:
 		frappe.throw(errors, title=_('EFRIS Cancellation Failed'), as_list=1)
 	else:
-		frappe.msgprint(_("EFRIS Cancelled Successfully."), alert=1)
+		msg = "EFRIS Credit Note Application Submitted Successfully." + "\n"
+		msg = msg + "Please note that EFRIS will only be cancelled after URA Approval." + "\n"
+		msg = msg + "A new EFRIS Credit Note Invoice will be created on approval." + "\n"
+		msg = msg + "To check approal status, press button \"Update Cancel Status\"" + "\n"
+
+		frappe.msgprint(_(msg), alert=1)
 
 	return success
 
 def validate_irn_cancellation(einvoice):
-	if time_diff_in_hours(now_datetime(), einvoice.ack_date) > 24:
-		frappe.throw(_('E-Invoice cannot be cancelled after 24 hours of IRN generation.'),
-			title=_('Invalid Request'))
+	#if time_diff_in_hours(now_datetime(), einvoice.ack_date) > 24:
+	#	frappe.throw(_('E-Invoice cannot be cancelled after 24 hours of IRN generation.'),
+	#		title=_('Invalid Request'))
 
 	if not einvoice.irn:
-		frappe.throw(_('IRN not found. You must generate IRN before cancelling.'),
+		frappe.throw(_('EFRIS not found. You must generate EFRIS before cancelling.'),
 			title=_('Invalid Request'))
 	
 	if einvoice.irn_cancelled:
-		frappe.throw(_('IRN is already cancelled. You cannot cancel e-invoice twice.'),
+		frappe.throw(_('EFRIS is already cancelled. You cannot cancel e-invoice twice.'),
 			title=_('Invalid Request'))
 
 @frappe.whitelist()

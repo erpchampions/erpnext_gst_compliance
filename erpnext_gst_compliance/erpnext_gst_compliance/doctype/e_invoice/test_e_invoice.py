@@ -10,7 +10,7 @@ from erpnext.accounts.doctype.sales_invoice.test_sales_invoice import get_sales_
 class TestEInvoice(unittest.TestCase):
 	def setUp(self):
 		self.e_invoice, self.sales_invoice = make_e_invoice()
-		self.assertEqual(self.e_invoice.status, 'IRN Pending')
+		self.assertEqual(self.e_invoice.status, 'EFRIS Pending')
 
 	def test_mandatory_fields(self):
 		mandatory_fields = []

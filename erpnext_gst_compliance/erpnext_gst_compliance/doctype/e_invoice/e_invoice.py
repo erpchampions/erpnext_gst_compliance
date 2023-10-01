@@ -13,7 +13,7 @@ from frappe.model.document import Document
 from frappe.utils.data import cint, format_date, getdate, flt, get_link_to_form
 from frappe.core.doctype.version.version import get_diff
 import random
-from erpnext_gst_compliance.efris_utils import efris_log_info
+from erpnext_gst_compliance.efris_utils import efris_log_info, get_ug_time_str
 
 #from erpnext.regional.india.utils import get_gst_accounts
 GST_ACCOUNT_FIELDS = (
@@ -27,9 +27,9 @@ class EInvoice(Document):
 	
 	def before_submit(self):
 		if not self.irn:
-			msg = _("Cannot submit e-invoice without IRN.") + ' '
-			msg += _("You must generate IRN for the sales invoice to submit this e-invoice.")
-			frappe.throw(msg, title=_("Missing IRN"))
+			msg = _("Cannot submit e-invoice without EFRIS.") + ' '
+			msg += _("You must generate EFRIS for the sales invoice to submit this e-invoice.")
+			frappe.throw(msg, title=_("Missing EFRIS"))
 
 	def on_update(self):
 		self.update_sales_invoice()
@@ -55,7 +55,8 @@ class EInvoice(Document):
 
 	@frappe.whitelist()
 	def fetch_invoice_details(self):
-	
+		efris_log_info("fetch_invoice_details...")
+
 		self.set_sales_invoice()
 		efris_log_info("set_sales_invoice OK")
 		
@@ -157,24 +158,30 @@ class EInvoice(Document):
 		elif gst_category == 'B2G': self.supply_type = 3
   
 	def set_tax_details(self):
-     
+		efris_log_info("set_return_doc_reference()..")
 		# MOKI TODO: more work here to handle all  tax rate types (Standard, Excempt, 0-rated,..)
-		if len(self.sales_invoice.taxes) > 0: #and len(self.taxes) < 1:
-			
-			
+					
+		taxes_list = []
+
+		for tax_item in self.sales_invoice.taxes:
+
+			efris_log_info("tax_item rate/total :" + str(tax_item.rate) + "/" + str(tax_item.total) )		
 			taxes = frappe._dict({
-				"tax_category_code" : "01",
-				"net_amount" : self.sales_invoice.net_total,
-				"tax_rate" : self.sales_invoice.taxes[0].rate/100,
-				"tax_amount" : self.sales_invoice.taxes[0].tax_amount,
-				"gross_amount" : self.sales_invoice.grand_total,
+				"tax_category_code" : "01", # TODO: handle multiple categories
+				"net_amount" : self.sales_invoice.net_total, # TODO: handle multiple categories
+				"tax_rate" : tax_item.rate/100,
+				"tax_amount" : tax_item.tax_amount,
+				"gross_amount" : tax_item.total, # TODO: handle multiple categories
 				"excise_unit" : "",
 				"excise_currency" : "",
 				"tax_rate_name" : ""
 			})
-			self.append("taxes", taxes)
-		else:
-			return
+			taxes_list.append(taxes)
+		efris_log_info("clearing taxes table here")
+		self.taxes = []
+		self.append("taxes", taxes)
+		#else:
+		#	return
 		
 	
 	def set_seller_details(self):
@@ -294,14 +301,17 @@ class EInvoice(Document):
 		sales_invoice_item_names = [d.name for d in self.sales_invoice.items]
 		e_invoice_item_names = [d.si_item_ref for d in self.items]
 		item_added_or_removed = sales_invoice_item_names != e_invoice_item_names
-
-		if self.items and not item_added_or_removed:
-			self.update_items_from_invoice()
-		else:
-			self.fetch_items_from_invoice()
+		efris_log_info("item_added_or_removed:" +str(item_added_or_removed))
+		self.update_items_from_invoice()	
+		#if item_added_or_removed:
+		#	self.update_items_from_invoice()
+		#else:
+		#	self.fetch_items_from_invoice()
 
 	def fetch_items_from_invoice(self):
+		efris_log_info("fetch_items_from_invoice")
 		item_taxes = loads(self.sales_invoice.taxes[0].item_wise_tax_detail)
+		
 		for i, item in enumerate(self.sales_invoice.items):
 			frappe.log_error(title="Sales Item Picking", message=item.as_dict())
 			if not item.gst_hsn_code:
@@ -347,30 +357,34 @@ class EInvoice(Document):
 		#self.set_calculated_item_totals()
 
 	def update_items_from_invoice(self):
-		item_taxes = loads(self.sales_invoice.taxes[0].item_wise_tax_detail)
-		for i, einvoice_item in enumerate(self.items):
-			item = self.sales_invoice.items[i]
+		efris_log_info("update_items_from_invoice, clear existing")
+		if self.items:
+			self.get("items").clear()
+		self.fetch_items_from_invoice()
+		# item_taxes = loads(self.sales_invoice.taxes[0].item_wise_tax_detail)
+		# for i, einvoice_item in enumerate(self.items):
+		# 	item = self.sales_invoice.items[i]
 
-			if not item.gst_hsn_code:
-				frappe.throw(_('Row #{}: Item {} must have HSN code set to be able to generate e-invoice.')
-					.format(item.idx, item.item_code))
+		# 	if not item.gst_hsn_code:
+		# 		frappe.throw(_('Row #{}: Item {} must have HSN code set to be able to generate e-invoice.')
+		# 			.format(item.idx, item.item_code))
 
-			is_service_item = item.gst_hsn_code[:2] == "99" #TODO: Change to EFRI logic
+		# 	is_service_item = item.gst_hsn_code[:2] == "99" #TODO: Change to EFRIS logic
 
-			einvoice_item.update({
-				'item_code': item.item_code,
-				'item_name': item.item_name,
-				'is_service_item': is_service_item,
-				'gst_hsn_code': item.gst_hsn_code,
-				'quantity': abs(item.qty),
-				'unit': item.uom,
-				'rate': item.rate,
-				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
-				'amount': item.amount,
-				'tax': round(item_taxes[item.item_code][1], 2),
-    			'order_number': i,
-				'hsn_code_description': frappe.get_doc("GST HSN Code", item.gst_hsn_code).commodity_name
-			})
+		# 	einvoice_item.update({
+		# 		'item_code': item.item_code,
+		# 		'item_name': item.item_name,
+		# 		'is_service_item': is_service_item,
+		# 		'gst_hsn_code': item.gst_hsn_code,
+		# 		'quantity': abs(item.qty),
+		# 		'unit': item.uom,
+		# 		'rate': item.rate,
+		# 		'gst_rate': round(item_taxes[item.item_code][0]/100,2),
+		# 		'amount': item.amount,
+		# 		'tax': round(item_taxes[item.item_code][1], 2),
+    	# 		'order_number': i,
+		# 		'hsn_code_description': frappe.get_doc("GST HSN Code", item.gst_hsn_code).commodity_name
+		# 	})
 
 			#self.set_item_tax_details(einvoice_item)
 
@@ -409,7 +423,7 @@ class EInvoice(Document):
 	def set_return_doc_reference(self):
 		if self.sales_invoice.is_return:
 			if not self.sales_invoice.return_against:
-				frappe.throw(_('For generating IRN, reference to the original invoice is mandatory for a credit note. Please set {} field to generate e-invoice.')
+				frappe.throw(_('For generating EFRIS, reference to the original invoice is mandatory for a credit note. Please set {} field to generate e-invoice.')
 					.format(frappe.bold('Return Against')), title=_('Missing Field'))
 
 			self.previous_document_no = self.sales_invoice.return_against
@@ -677,31 +691,34 @@ def get_einvoice(sales_invoice):
 	return frappe.get_doc('E Invoice', sales_invoice)
 
 def validate_sales_invoice_change(doc, method=""):
+	efris_log_info("validate_sales_invoice_change, doc.docstatus/_action:" +  str(doc.docstatus) + "/" + str(doc._action))
 	invoice_eligible = validate_einvoice_eligibility(doc)
 
 	if not invoice_eligible:
 		return
 
-	if doc.einvoice_status in ['IRN Cancelled', 'IRN Pending']:
+	if doc.einvoice_status in ['EFRIS Cancelled']:
 		return
 
 	if doc.docstatus == 0 and doc._action == 'save':
+		efris_log_info("saving..")
 		if frappe.db.exists('E Invoice', doc.name):
 			einvoice = get_einvoice(doc.e_invoice)
+
 			einvoice_copy = get_einvoice(doc.e_invoice)
 			einvoice_copy.sync_with_sales_invoice()
-	
+			
 			# to ignore changes in default fields
-			einvoice = remove_default_fields(einvoice)
+			#einvoice = remove_default_fields(einvoice)
 			einvoice_copy = remove_default_fields(einvoice_copy)
 			diff = get_diff(einvoice, einvoice_copy)
 	
-			if diff:
+			if diff and einvoice.status in ['EFRIS Generated','EFRIS Credit Note Pending']:
 				frappe.log_error(
 					message=dumps(diff, indent=2),
 					title=_('E-Invoice: Edit Not Allowed')
 				)
-				frappe.throw(_('You cannot edit the invoice after generating IRN'), title=_('Edit Not Allowed'))
+				frappe.throw(_('You cannot edit the invoice after generating EFRIS'), title=_('Edit Not Allowed'))
 
 def remove_default_fields(doc):
 	clone = frappe.copy_doc(doc)
@@ -727,12 +744,12 @@ def validate_einvoice_eligibility(doc):
 	if isinstance(doc, six.string_types):
 		doc = loads(doc)
 
-	frappe.log_error("** validate_einvoice_eligibility +1 **")
+	#frappe.log_error("** validate_einvoice_eligibility +1 **")
 	service_provider = frappe.db.get_single_value('E Invoicing Settings', 'service_provider')
 	if not service_provider:
 		return False
 
-	frappe.log_error("** validate_einvoice_eligibility +2 **")
+	#frappe.log_error("** validate_einvoice_eligibility +2 **")
 
 	# if service_provider ==  "ERP Champions Settings":
 	# 	einvoicing_enabled = frappe.get_cached_doc(service_provider)
@@ -744,13 +761,13 @@ def validate_einvoice_eligibility(doc):
 	if not einvoicing_enabled:
 		return False
 
-	frappe.log_error("** validate_einvoice_eligibility +3 **")
+	#frappe.log_error("** validate_einvoice_eligibility +3 **")
 
 	einvoicing_eligible_from = '2021-04-01'
 	if getdate(doc.get('posting_date')) < getdate(einvoicing_eligible_from):
 		return False
 
-	frappe.log_error("** validate_einvoice_eligibility +4 **")
+	#frappe.log_error("** validate_einvoice_eligibility +4 **")
 
 	eligible_companies = frappe.db.get_single_value('E Invoicing Settings', 'companies')
 	invalid_company = doc.get('company') not in eligible_companies
@@ -761,12 +778,12 @@ def validate_einvoice_eligibility(doc):
 	inter_company_transaction = False # = doc.get('billing_address_gstin') == doc.get('company_gstin')
 	has_non_gst_item = any(d for d in doc.get('items', []) if d.get('is_non_gst'))
 
-	frappe.log_error("** validate_einvoice_eligibility has_non_gst_item: **" + str(has_non_gst_item))
+	#frappe.log_error("** validate_einvoice_eligibility has_non_gst_item: **" + str(has_non_gst_item))
 	# if export invoice, then taxes can be empty
 	# invoice can only be ineligible if no taxes applied and is not an export invoice
 	no_taxes_applied = not doc.get('taxes') and not doc.get('gst_category') == 'Overseas'
 	
-	frappe.log_error("** validate_einvoice_eligibility no_taxes_applied: **" + str(no_taxes_applied))
+	#frappe.log_error("** validate_einvoice_eligibility no_taxes_applied: **" + str(no_taxes_applied))
 
 	if invalid_company or invalid_supply_type or inter_company_transaction or no_taxes_applied or has_non_gst_item:
 		frappe.log_error(f'{invalid_company}, {invalid_supply_type}, {inter_company_transaction}, {no_taxes_applied}, {has_non_gst_item}')
@@ -781,8 +798,8 @@ def validate_sales_invoice_submission(doc, method=""):
 	if not invoice_eligible:
 		return
 
-	if not doc.get('einvoice_status') or doc.get('einvoice_status') == 'IRN Pending':
-		frappe.throw(_('You must generate IRN before submitting the document.'), title=_('Missing IRN'))
+	if not doc.get('einvoice_status') or doc.get('einvoice_status') == 'EFRIS Pending':
+		frappe.throw(_('You must generate EFRIS before submitting the document.'), title=_('Missing EFRIS'))
 
 def validate_sales_invoice_cancellation(doc, method=""):
 	invoice_eligible = validate_einvoice_eligibility(doc)
@@ -790,8 +807,8 @@ def validate_sales_invoice_cancellation(doc, method=""):
 	if not invoice_eligible:
 		return
 
-	if doc.get('einvoice_status') != 'IRN Cancelled':
-		frappe.throw(_('You must cancel IRN before cancelling the document.'), title=_('Cancellation Not Allowed'))
+	if doc.get('einvoice_status') != 'EFRIS Cancelled':
+		frappe.throw(_('You must cancel EFRIS before cancelling the document.'), title=_('Cancellation Not Allowed'))
 
 def validate_sales_invoice_deletion(doc, method=""):
 	invoice_eligible = validate_einvoice_eligibility(doc)
@@ -799,8 +816,8 @@ def validate_sales_invoice_deletion(doc, method=""):
 	if not invoice_eligible:
 		return
 
-	if doc.get('einvoice_status') != 'IRN Cancelled':
-		frappe.throw(_('You must cancel IRN before deleting the document.'), title=_('Deletion Not Allowed'))
+	if doc.get('einvoice_status') != 'EFRIS Cancelled':
+		frappe.throw(_('You must cancel EFRIS before deleting the document.'), title=_('Deletion Not Allowed'))
 
 def cancel_e_invoice(doc, method=""):
 	if doc.get('e_invoice'):
