@@ -21,7 +21,6 @@
   "qrcode_path",
   "qrcode",
   "column_break_6",
-  "ecommerce_gstin",
   "invoice",
   "irn",
   "invoice_date",
@@ -148,12 +147,6 @@
    "label": "Buyer Type",
    "options": "0\n1\n2\n3",
    "reqd": 1
-  },
-  {
-   "depends_on": "ecommerce_gstin",
-   "fieldname": "ecommerce_gstin",
-   "fieldtype": "Data",
-   "label": "Ecommerce GSTIN"
   },
   {
    "fieldname": "amended_from",
@@ -742,7 +735,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-10-01 16:27:10.150933",
+ "modified": "2023-10-03 16:53:09.894679",
  "modified_by": "Administrator",
  "module": "ERPNext GST Compliance",
  "name": "E Invoice",

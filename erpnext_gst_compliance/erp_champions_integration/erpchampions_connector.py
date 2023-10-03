@@ -275,6 +275,28 @@ class ErpChampionsConnector:
 	@log_exception
 	def make_cancel_irn_request(self, reason, remark):
 		efris_log_info ("make_cancel_irn_request. reason/remark" + str(reason) + "/" + str(remark) )
+		
+		einvoice_credit_copy = self.einvoice
+		for index, item in enumerate(einvoice_credit_copy.items):
+			einvoice_credit_copy.items[index].quantity = - abs(item.quantity)
+			einvoice_credit_copy.items[index].tax = - abs(item.tax)
+			einvoice_credit_copy.items[index].amount = - abs(item.amount)
+
+		for index, tax_item in enumerate(einvoice_credit_copy.taxes):
+			einvoice_credit_copy.taxes[index].net_amount = -abs(tax_item.net_amount)
+			einvoice_credit_copy.taxes[index].tax_amount = -abs(tax_item.tax_amount)
+			einvoice_credit_copy.taxes[index].gross_amount = -abs(tax_item.gross_amount)
+
+		einvoice_credit_copy.net_amount = -abs(einvoice_credit_copy.net_amount)
+		einvoice_credit_copy.tax_amount = -abs(einvoice_credit_copy.tax_amount)
+		einvoice_credit_copy.gross_amount = -abs(einvoice_credit_copy.gross_amount)
+		einvoice_credit_copy.name = einvoice_credit_copy.name + "-CAN"
+		einvoice_credit_copy.status = "EFRIS Credit Note Pending"
+		
+
+
+		efris_log_info("creating copy of credit note done...:" + str(self.einvoice.currency_code))
+
 		credit_note = {
 			"oriInvoiceId": self.einvoice.invoice_id,
 			"oriInvoiceNo": self.einvoice.irn,
@@ -282,7 +304,7 @@ class ErpChampionsConnector:
 			"reason": "",
 			"applicationTime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
 			"invoiceApplyCategoryCode": "101",
-			"currency": "UGX",
+			"currency": 'UGX', #TODO remove hardcode
 			"contactName": "",
 			"contactMobileNum": "",
 			"contactEmail": "",
@@ -384,6 +406,7 @@ class ErpChampionsConnector:
   
 		#frappe.log_error("Credit Note JSON BEFORE: ", credit_note)
 		# Add needed fields
+	
 
 		# Make fields negative
 
@@ -392,7 +415,7 @@ class ErpChampionsConnector:
 			credit_note["goodsDetails"][index]["qty"] = str(-abs(int(credit_note["goodsDetails"][index]["qty"])))
 			credit_note["goodsDetails"][index]["total"] = str(-abs(float(credit_note["goodsDetails"][index]["total"])))
 			credit_note["goodsDetails"][index]["tax"] = str(-abs(float(credit_note["goodsDetails"][index]["tax"])))
-   
+			
 		# TaxDetails
 		for index, tax in enumerate(credit_note["taxDetails"]):
 			credit_note["taxDetails"][index]["netAmount"] = str(-abs(float(credit_note["taxDetails"][index]["netAmount"])))
@@ -413,6 +436,20 @@ class ErpChampionsConnector:
   
 		
 		sucess, errors = self.handle_irn_cancellation_response(status, response)
+
+		try:
+		
+			#einv = frappe.new_doc('E Invoice')
+			#einv.invoice = einvoice_credit_copy
+
+			einvoice_credit_copy.flags.ignore_validate_update_after_submit = 1
+			einvoice_credit_copy.flags.ignore_permissions = 1
+			efris_log_info("BEFORE Save creditnote einvoice")
+			einvoice_credit_copy.save()
+			frappe.db.commit()
+			efris_log_info("AFTER Save creditnote einvoice")
+		except Exception as e:
+			frappe.log_error("E Invoice Credit Note SAVE Error: ", e)
 		return sucess, errors
 
 	@log_exception
@@ -452,6 +489,100 @@ class ErpChampionsConnector:
 		success, errors = connector.make_cancel_irn_request(reason, remark)
 
 		return success, errors
+	
+	
+	@log_exception
+	def make_confirm_irn_cancellation_request(self):
+		efris_log_info ("make_confirm_irn_cancellation_request")
+		credit_note_application_query ={
+								"referenceNo": self.einvoice.credit_note_application_ref_no,
+								"oriInvoiceNo": "",
+								"invoiceNo": "",
+								"combineKeywords": "",
+								"approveStatus": "",
+								"queryType": "1",
+								"invoiceApplyCategoryCode": "",
+								"startDate": "",
+								"endDate": "",
+								"pageNo": "1",
+								"pageSize": "10" ,
+								"creditNoteType": "",
+								"branchName": "",
+								"sellerTinOrNin": "",
+								"sellerLegalOrBusinessName": ""
+							}
+		frappe.log_error("Confirm Request: ", credit_note_application_query)
+
+		status, response = erpnext_gst_compliance.efris_utils.make_post("T111", credit_note_application_query)
+  		
+		sucess, errors = self.handle_confirm_irn_cancellation_response(status, response)
+		return sucess, errors
+
+	@log_exception
+	def handle_confirm_irn_cancellation_response(self, status, response):
+		if status:
+			try: 
+				sucess, errors = self.handle_successful_confirm_irn_cancellation(response)
+			except Exception as e:
+				frappe.log_error("E Invoice Confirm Cancellation Error: ", e)
+			return True, errors
+		else:
+			return False, "Something went wrong"
+
+	def handle_successful_confirm_irn_cancellation(self, response):
+		
+		page_count = response["page"]["pageCount"]
+		efris_log_info("page_count:" + str(page_count))
+
+		if not page_count:
+			return False, "Credit Note Application Reference not found!"
+		approve_status = response["records"][0]["approveStatus"]
+		efris_log_info("approve_status:" + str(approve_status))
+
+		if approve_status == '102': #no change
+			return True, "Pending URA Approval"
+		
+		if approve_status == '101': #approved
+			credit_invoice_no = response["records"][0]["invoiceNo"]
+			efris_log_info("credit_invoice_no:" + str(credit_invoice_no))	
+			self.einvoice.credit_note_invoice_no =credit_invoice_no
+			self.einvoice.irn_cancelled = 1
+			self.einvoice.irn_cancel_date = datetime.now() # TODO Credit Note Invoice Issue Date
+			self.einvoice.credit_note_approval_status = "101:Approved"
+			#self.einvoice.status = "EFRIS Cancelled"
+
+			#get invoice details
+			invoice_details_content = {"invoiceNo":self.einvoice.credit_note_invoice_no}
+			status, response = erpnext_gst_compliance.efris_utils.make_post("T108", invoice_details_content)
+			if status:
+				try: 
+					
+					# URA returned fields for the credit note
+					invoice_id = response["basicInformation"]["invoiceId"]
+					antifake_code = response["basicInformation"]["antifakeCode"]
+					qrcode = self.generate_qrcode(response["summary"]["qrCode"])
+					efris_log_info("invoice_id/antifake_code: " + str(invoice_id) + "/" + str(antifake_code) )
+				except Exception as e:
+					frappe.log_error("E Invoice Confirm Cancellation Error: ", e)
+				return True, ""
+			else:
+				return False, "Something went wrong"
+		
+			self.einvoice.flags.ignore_validate_update_after_submit = 1
+			self.einvoice.flags.ignore_permissions = 1
+			self.einvoice.save()
+
+			return True, "Credit Note Approved! New Credit Note Invoice No: " + str(self.einvoice.credit_note_invoice_no) 
+
+	@staticmethod
+	@log_exception
+	def confirm_irn_cancellation(einvoice):
+		gstin = einvoice.seller_gstin
+		connector = ErpChampionsConnector(gstin)
+		connector.einvoice = einvoice
+		success, errors = connector.make_confirm_irn_cancellation_request()
+
+		return success, errors		
 
 	@log_exception
 	def make_eway_bill_request(self):

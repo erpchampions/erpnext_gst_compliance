@@ -25,6 +25,21 @@ def get_service_provider_connector():
 	return connector
 
 @frappe.whitelist()
+def confirm_irn_cancellation(sales_invoice):
+	sales_invoice = parse_sales_invoice(sales_invoice)
+	connector = get_service_provider_connector()
+	einvoice = get_einvoice(sales_invoice.name)
+	
+	success, errors = connector.confirm_irn_cancellation(einvoice)
+
+	if not success:
+		frappe.throw(errors, title=_('Error Confirming EFRIS Cancellation'), as_list=1)
+	else:
+		frappe.msgprint(_("Latest EFRIS Cancellation Status Updated. \n Status: " + str(errors)), alert=1)
+
+	return success	
+
+@frappe.whitelist()
 def generate_irn(sales_invoice):
 	sales_invoice = parse_sales_invoice(sales_invoice)
 	validate_irn_generation(sales_invoice)

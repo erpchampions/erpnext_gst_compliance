@@ -35,12 +35,12 @@ frappe.ui.form.on('Sales Invoice', {
 		
 		if (einvoice_status == 'EFRIS Credit Note Pending') {
 			// Generate IRN (Invoice Reference Number)= EFRIS Fiscal Document Number (FDN)
-			add_einvoice_button(__('EFRIS Approval Status'), async () => {
+			add_einvoice_button(__('Confirm EFRIS Cancellation'), async () => {
 				if (frm.is_dirty()) return raise_form_is_dirty_error();
 
 				await frm.reload_doc();
 				frappe.call({
-					method: e_invoicing_controller + '.generate_irn_status_upd',
+					method: e_invoicing_controller + '.confirm_irn_cancellation',
 					args: { sales_invoice: frm.doc },
 					callback: () => frm.reload_doc(),
 					error: () => frm.reload_doc(),
