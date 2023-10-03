@@ -290,7 +290,7 @@ class ErpChampionsConnector:
 		einvoice_credit_copy.net_amount = -abs(einvoice_credit_copy.net_amount)
 		einvoice_credit_copy.tax_amount = -abs(einvoice_credit_copy.tax_amount)
 		einvoice_credit_copy.gross_amount = -abs(einvoice_credit_copy.gross_amount)
-		einvoice_credit_copy.name = einvoice_credit_copy.name + "-CAN"
+		#einvoice_credit_copy.name = einvoice_credit_copy.name + "-CAN"
 		einvoice_credit_copy.status = "EFRIS Credit Note Pending"
 		
 
@@ -439,14 +439,14 @@ class ErpChampionsConnector:
 
 		try:
 		
-			#einv = frappe.new_doc('E Invoice')
-			#einv.invoice = einvoice_credit_copy
+			einv = frappe.new_doc('E Invoice')
+			einv = einvoice_credit_copy
 
-			einvoice_credit_copy.flags.ignore_validate_update_after_submit = 1
-			einvoice_credit_copy.flags.ignore_permissions = 1
+			#einv.flags.ignore_validate_update_after_submit = 1
+			einv.flags.ignore_permissions = 1
 			efris_log_info("BEFORE Save creditnote einvoice")
-			einvoice_credit_copy.save()
-			frappe.db.commit()
+			#einv.save()
+			#frappe.db.commit()
 			efris_log_info("AFTER Save creditnote einvoice")
 		except Exception as e:
 			frappe.log_error("E Invoice Credit Note SAVE Error: ", e)
