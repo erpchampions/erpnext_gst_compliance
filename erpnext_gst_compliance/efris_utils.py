@@ -30,7 +30,6 @@ from datetime import datetime
 import pytz
 from collections import defaultdict
 
-
 #logging.info("This is an info message")
 #logging.warning("This is a warning message")
 #logging.error("This is an error message")
@@ -157,7 +156,14 @@ def decrypt_aes_ecb(aeskey, ciphertext):
     plaintext = plaintext_with_padding[:-padding_length]
 
     return plaintext
-    
+
+def to_ug_datetime(date_time):
+    ug_time_zone = "Africa/Kampala"
+    # Convert the current time to the Uganda time zone
+    uganda_time = date_time.astimezone(pytz.timezone(ug_time_zone))
+    uganda_time_str = uganda_time.strftime("%Y-%m-%d %H:%M:%S")   
+
+    return  uganda_time_str
 def get_ug_time_str():
     ug_time_zone = "Africa/Kampala"
     now = datetime.now()#.strftime("%Y-%m-%d %H:%M:%S")

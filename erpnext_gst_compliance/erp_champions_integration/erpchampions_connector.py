@@ -9,7 +9,7 @@ from json import dumps
 from pyqrcode import create as qrcreate
 from frappe.utils.data import get_link_to_form
 from erpnext_gst_compliance.utils import log_exception
-from erpnext_gst_compliance.efris_utils import efris_log_info, get_ug_time_str
+from erpnext_gst_compliance.efris_utils import efris_log_info, get_ug_time_str, to_ug_datetime
 from frappe.integrations.utils import make_post_request, make_get_request
 from frappe.utils.data import add_to_date, time_diff_in_seconds, now_datetime
 import erpnext_gst_compliance.efris_utils
@@ -189,6 +189,23 @@ class ErpChampionsConnector:
 		invoice_id = response["basicInformation"]["invoiceId"]
 		antifake_code = response["basicInformation"]["antifakeCode"]
 		qrcode = self.generate_qrcode(response["summary"]["qrCode"])
+		invoice_date = response["basicInformation"]["issuedDate"]
+		efris_log_info("invoice_date:" + str(invoice_date))
+		invoice_date = datetime.strptime(invoice_date, '%d/%m/%Y %H:%M:%S')
+
+		#seller details		
+		seller_address = response["sellerDetails"]["address"]
+		seller_trade_name = response["sellerDetails"]["businessName"]
+		seller_legal_name = response["sellerDetails"]["legalName"]
+		nin_brn = response["sellerDetails"]["ninBrn"]
+		seller_email = response["sellerDetails"]["emailAddress"]
+		seller_phone = response["sellerDetails"]["mobilePhone"]
+		
+		
+		#buyer details
+		buyer_trade_name = response["buyerDetails"]["buyerBusinessName"]
+		buyer_legal_name = response["buyerDetails"]["buyerLegalName"]
+		buyer_gstin = response["buyerDetails"]["buyerTin"]
 
 		self.einvoice.update({
 			'irn': irn,
@@ -196,6 +213,16 @@ class ErpChampionsConnector:
 			'antifake_code': antifake_code,
 			'status': status,
 			'qrcode_path': qrcode,
+			'invoice_date': invoice_date,
+			'seller_trade_name': seller_trade_name,
+			'seller_legal_name': seller_legal_name,
+			'seller_nin_or_brn': nin_brn,
+			'seller_address': seller_address,
+			'seller_email': seller_email,
+			'seller_phone': seller_phone,
+			'buyer_trade_name': buyer_trade_name,
+			'buyer_legal_name': buyer_legal_name,
+			'buyer_gstin': buyer_gstin,
 		})
 		self.einvoice.flags.ignore_permissions = 1
 		self.einvoice.submit()

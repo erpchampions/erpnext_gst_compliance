@@ -158,7 +158,7 @@ class EInvoice(Document):
 		elif gst_category == 'B2G': self.supply_type = 3
   
 	def set_tax_details(self):
-		efris_log_info("set_return_doc_reference()..")
+		efris_log_info("set_tax_details()..")
 		# MOKI TODO: more work here to handle all  tax rate types (Standard, Excempt, 0-rated,..)
 					
 		taxes_list = []

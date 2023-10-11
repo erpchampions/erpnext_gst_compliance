@@ -21,16 +21,18 @@
   "qrcode_path",
   "qrcode",
   "column_break_6",
+  "invoice_type",
   "invoice",
   "irn",
   "invoice_date",
   "column_break_12",
-  "invoice_type",
   "seller_details_section",
   "seller_gstin",
   "seller_legal_name",
   "seller_trade_name",
   "column_break_20",
+  "seller_address",
+  "seller_nin_or_brn",
   "seller_phone",
   "seller_email",
   "buyer_details_section",
@@ -38,7 +40,7 @@
   "supply_type",
   "buyer_legal_name",
   "buyer_trade_name",
-  "buyer_address_line_2",
+  "buyer_address",
   "column_break_33",
   "buyer_phone",
   "buyer_email",
@@ -160,9 +162,9 @@
   {
    "fetch_from": "invoice.posting_date",
    "fieldname": "invoice_date",
-   "fieldtype": "Date",
+   "fieldtype": "Datetime",
    "in_list_view": 1,
-   "label": "Invoice Date",
+   "label": "Invoice Date/Time",
    "reqd": 1
   },
   {
@@ -236,12 +238,6 @@
    "fieldname": "buyer_trade_name",
    "fieldtype": "Data",
    "label": "Trade Name"
-  },
-  {
-   "depends_on": "buyer_address_line_2",
-   "fieldname": "buyer_address_line_2",
-   "fieldtype": "Data",
-   "label": "Address Line 2"
   },
   {
    "depends_on": "buyer_phone",
@@ -730,12 +726,28 @@
    "fieldname": "buyer_gstin",
    "fieldtype": "Data",
    "label": "GSTIN"
+  },
+  {
+   "depends_on": "buyer_address_line_2",
+   "fieldname": "buyer_address",
+   "fieldtype": "Data",
+   "label": "Buyer Address"
+  },
+  {
+   "fieldname": "seller_address",
+   "fieldtype": "Data",
+   "label": "Seller Address"
+  },
+  {
+   "fieldname": "seller_nin_or_brn",
+   "fieldtype": "Data",
+   "label": "Seller NIN or BRN"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-10-03 16:53:09.894679",
+ "modified": "2023-10-11 22:01:16.614729",
  "modified_by": "Administrator",
  "module": "ERPNext GST Compliance",
  "name": "E Invoice",
