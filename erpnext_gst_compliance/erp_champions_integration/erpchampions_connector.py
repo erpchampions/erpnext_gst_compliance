@@ -183,66 +183,76 @@ class ErpChampionsConnector:
 
 	def handle_successful_irn_generation(self, response):
 		status = 'EFRIS Generated'
+		# Default values
+		irn = invoice_id = antifake_code = qrcode = invoice_date = None
+		seller_address = seller_trade_name = seller_legal_name = nin_brn = seller_email = seller_phone = None
+		buyer_trade_name = buyer_legal_name = buyer_gstin = None
 
-		# URA returned fields
-		irn = response["basicInformation"]["invoiceNo"]
-		invoice_id = response["basicInformation"]["invoiceId"]
-		antifake_code = response["basicInformation"]["antifakeCode"]
-		qrcode = self.generate_qrcode(response["summary"]["qrCode"])
-		invoice_date = response["basicInformation"]["issuedDate"]
-		efris_log_info("invoice_date:" + str(invoice_date))
-		invoice_date = datetime.strptime(invoice_date, '%d/%m/%Y %H:%M:%S')
+		try:
+			# URA returned fields
+			irn = response["basicInformation"]["invoiceNo"]
+			invoice_id = response["basicInformation"]["invoiceId"]
+			antifake_code = response["basicInformation"]["antifakeCode"]
+			qrcode = self.generate_qrcode(response["summary"]["qrCode"])
+			invoice_date = response["basicInformation"]["issuedDate"]
+			efris_log_info("invoice_date:" + str(invoice_date))
+			invoice_date = datetime.strptime(invoice_date, '%d/%m/%Y %H:%M:%S')
 
-		#seller details		
-		seller_address = response["sellerDetails"]["address"]
-		seller_trade_name = response["sellerDetails"]["businessName"]
-		seller_legal_name = response["sellerDetails"]["legalName"]
-		nin_brn = response["sellerDetails"]["ninBrn"]
-		seller_email = response["sellerDetails"]["emailAddress"]
-		seller_phone = response["sellerDetails"]["mobilePhone"]
-		
-		
-		#buyer details
-		buyer_trade_name = response["buyerDetails"]["buyerBusinessName"]
-		buyer_legal_name = response["buyerDetails"]["buyerLegalName"]
-		buyer_gstin = response["buyerDetails"]["buyerTin"]
+			# seller details
+			seller_address = response["sellerDetails"]["address"]
+			seller_trade_name = response["sellerDetails"]["businessName"]
+			seller_legal_name = response["sellerDetails"]["legalName"]
+			nin_brn = response["sellerDetails"]["ninBrn"]
+			seller_email = response["sellerDetails"]["emailAddress"]
+			seller_phone = response["sellerDetails"]["mobilePhone"]
 
-		self.einvoice.update({
-			'irn': irn,
-			'invoice_id':invoice_id,
-			'antifake_code': antifake_code,
-			'status': status,
-			'qrcode_path': qrcode,
-			'invoice_date': invoice_date,
-			'seller_trade_name': seller_trade_name,
-			'seller_legal_name': seller_legal_name,
-			'seller_nin_or_brn': nin_brn,
-			'seller_address': seller_address,
-			'seller_email': seller_email,
-			'seller_phone': seller_phone,
-			'buyer_trade_name': buyer_trade_name,
-			'buyer_legal_name': buyer_legal_name,
-			'buyer_gstin': buyer_gstin,
-		})
-		self.einvoice.flags.ignore_permissions = 1
-		self.einvoice.submit()
+			# buyer details
+			buyer_trade_name = response["buyerDetails"]["buyerBusinessName"]
+			buyer_legal_name = response["buyerDetails"]["buyerLegalName"]
+			buyer_gstin = response["buyerDetails"]["buyerTin"]
+
+		except KeyError as e:
+			print(f"Error fetching data from response JSON: Missing key {e}")
+		except Exception as e:
+			print(f"Unexpected error occurred: {e}")
+
+		finally:		
+						
+			self.einvoice.update({
+				'irn': irn,
+				'invoice_id': invoice_id,
+				'antifake_code': antifake_code,
+				'status': status,
+				'qrcode_path': qrcode,
+				'invoice_date': invoice_date,
+				'seller_trade_name': seller_trade_name,
+				'seller_legal_name': seller_legal_name,
+				'seller_nin_or_brn': nin_brn,
+				'seller_address': seller_address,
+				'seller_email': seller_email,
+				'seller_phone': seller_phone,
+				'buyer_trade_name': buyer_trade_name,
+				'buyer_legal_name': buyer_legal_name,
+				'buyer_gstin': buyer_gstin,
+			})
+			self.einvoice.flags.ignore_permissions = 1
+			self.einvoice.submit()
 
 	def generate_qrcode(self, signed_qrcode):
 		doctype = self.einvoice.doctype
 		docname = self.einvoice.name
 		filename = '{} - QRCode.png'.format(docname).replace(os.path.sep, "__")
-
 		qr_image = io.BytesIO()
 		url = qrcreate(signed_qrcode, error='L')
 		url.png(qr_image, scale=2, quiet_zone=1)
 		_file = frappe.get_doc({
-			'doctype': 'File',
-			'file_name': filename,
-			'attached_to_doctype': doctype,
-			'attached_to_name': docname,
-			'attached_to_field': 'qrcode_path',
-			'is_private': 0,
-			'content': qr_image.getvalue()
+		'doctype': 'File',
+		'file_name': filename,
+		'attached_to_doctype': doctype,
+		'attached_to_name': docname,
+		'attached_to_field': 'qrcode_path',
+		'is_private': 0,
+		'content': qr_image.getvalue()
 		})
 		_file.save()
 		return _file.file_url

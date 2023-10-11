@@ -7,18 +7,28 @@ from __future__ import unicode_literals
 import six
 import frappe
 from frappe import _
-from json import loads, dumps
+from json import loads, dumps, JSONDecoder,JSONEncoder
 from frappe.model import default_fields
 from frappe.model.document import Document
 from frappe.utils.data import cint, format_date, getdate, flt, get_link_to_form
 from frappe.core.doctype.version.version import get_diff
 import random
 from erpnext_gst_compliance.efris_utils import efris_log_info, get_ug_time_str
+#import json
+import datetime
 
 #from erpnext.regional.india.utils import get_gst_accounts
 GST_ACCOUNT_FIELDS = (
     "account",    
 )
+
+
+
+class DateTimeEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime.datetime):
+            return obj.isoformat()
+        return super(DateTimeEncoder, self).default(obj)
 
 class EInvoice(Document):
 	def validate(self):
@@ -715,7 +725,7 @@ def validate_sales_invoice_change(doc, method=""):
 	
 			if diff and einvoice.status in ['EFRIS Generated','EFRIS Credit Note Pending']:
 				frappe.log_error(
-					message=dumps(diff, indent=2),
+					message=json.dumps(diff, indent=2, cls=DateTimeEncoder), #message=dumps(diff, indent=2),
 					title=_('E-Invoice: Edit Not Allowed')
 				)
 				frappe.throw(_('You cannot edit the invoice after generating EFRIS'), title=_('Edit Not Allowed'))
