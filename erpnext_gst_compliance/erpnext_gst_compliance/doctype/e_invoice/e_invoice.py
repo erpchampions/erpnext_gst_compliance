@@ -175,21 +175,48 @@ class EInvoice(Document):
 
 		for tax_item in self.sales_invoice.taxes:
 
-			efris_log_info("tax_item rate/total :" + str(tax_item.rate) + "/" + str(tax_item.total) )		
-			taxes = frappe._dict({
-				"tax_category_code" : "01", # TODO: handle multiple categories
-				"net_amount" : self.sales_invoice.net_total, # TODO: handle multiple categories
-				"tax_rate" : tax_item.rate/100,
-				"tax_amount" : tax_item.tax_amount,
-				"gross_amount" : tax_item.total, # TODO: handle multiple categories
-				"excise_unit" : "",
-				"excise_currency" : "",
-				"tax_rate_name" : ""
-			})
-			taxes_list.append(taxes)
+			accnt_id = tax_item.account_head
+			accnt = frappe.get_doc('Account', accnt_id)
+			efris_log_info("accnt name:" + str(accnt.account_name))
+			
+			if tax_item.charge_type == "On Net Total" and accnt.account_name == "VAT":
+				efris_log_info("tax_item rate/total :" + str(tax_item.rate) + "/" + str(tax_item.total) )		
+				e_tax_category_code = e_tax_category_name = tax_rate = tax_amount = net_amount=gross_amount = None
+				e_taxes_table = {}
+				for e_invoice_item in self.items:
+					e_tax_category = e_invoice_item.e_tax_category
+					tax_amount = e_invoice_item.tax
+					gross_amount = e_invoice_item.amount
+					net_amount = gross_amount - tax_amount
+					tax_rate = e_invoice_item.gst_rate/100
+
+					#e_tax_category = e_invoice_item.e_tax_category.split(':')
+					#efris_log_info("e_tax_category code:" + str(e_tax_category[0]))
+					if e_tax_category in e_taxes_table:
+						e_taxes_table[e_tax_category]["gross_amount"] += gross_amount
+						e_taxes_table[e_tax_category]["net_amount"] += net_amount
+						e_taxes_table[e_tax_category]["tax_amount"] += tax_amount
+						e_taxes_table[e_tax_category]["nr_items"] += 1
+					else:
+						e_taxes_table[e_tax_category] = {'net_amount':net_amount,'tax_rate':tax_rate,'tax_amount':tax_amount,'gross_amount':gross_amount,'nr_items':1}
+				
+				for e_tax_category, data in e_taxes_table.items():
+
+					taxes = frappe._dict({
+						"tax_category_code" : e_tax_category, 
+						"net_amount" : data['net_amount'], # 
+						"tax_rate" : data['tax_rate'],
+						"tax_amount" : data['tax_amount'],
+						"gross_amount" : data['gross_amount'], 
+						"excise_unit" : "",
+						"excise_currency" : "",
+						"tax_rate_name" : ""
+					})
+					taxes_list.append(taxes)
 		efris_log_info("clearing taxes table here")
 		self.taxes = []
-		self.append("taxes", taxes)
+		self.taxes = taxes_list
+		#self.append("taxes", taxes)
 		#else:
 		#	return
 		
@@ -330,6 +357,14 @@ class EInvoice(Document):
 
 			is_service_item = item.gst_hsn_code[:2] == "99"
 
+			tax_template = frappe.get_doc("Item Tax Template",frappe.get_doc("Item",item.item_code).taxes[0].item_tax_template)
+			efris_log_info("tax template done:" + str(tax_template.title))
+			efris_tax_category = tax_template.taxes[0].custom_e_tax_category
+			efris_log_info("efris_tax_category:" + str(efris_tax_category))
+			if not efris_tax_category:
+				frappe.throw(_("Missing EFRIS Tax Category on Row #{}: Item {}. Ensure all Items have E Tax Category set under Item Tax Template Detail")
+					.format(item.idx, item.item_code))
+
 			if flt(item.qty) == 0.0:
 				rate = abs(item.taxable_value)
 			else:
@@ -348,6 +383,7 @@ class EInvoice(Document):
 				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
 				'amount': item.amount,
 				'order_number': i,
+				'e_tax_category': efris_tax_category,
 				'hsn_code_description': frappe.get_doc("GST HSN Code", item.gst_hsn_code).commodity_name
 			})
 			frappe.log_error(title="Einvoice Item before tax set", message=einvoice_item)
@@ -689,10 +725,14 @@ def create_einvoice(sales_invoice):
 		einvoice = frappe.new_doc('E Invoice')
 		einvoice.invoice = sales_invoice
 
+	efris_log_info("before sync_with_sales_invoice")
 	einvoice.sync_with_sales_invoice()
+	efris_log_info("after sync_with_sales_invoice")
 	einvoice.flags.ignore_permissions = 1
+	efris_log_info("before save")
 	einvoice.save()
-	frappe.db.commit()
+	efris_log_info("after save")
+	frappe.db.commit()	
 
 	efris_log_info("create_einvoice returning")
 	return einvoice
@@ -719,13 +759,13 @@ def validate_sales_invoice_change(doc, method=""):
 			einvoice_copy.sync_with_sales_invoice()
 			
 			# to ignore changes in default fields
-			#einvoice = remove_default_fields(einvoice)
+			einvoice = remove_default_fields(einvoice)
 			einvoice_copy = remove_default_fields(einvoice_copy)
 			diff = get_diff(einvoice, einvoice_copy)
 	
 			if diff and einvoice.status in ['EFRIS Generated','EFRIS Credit Note Pending']:
 				frappe.log_error(
-					message=json.dumps(diff, indent=2, cls=DateTimeEncoder), #message=dumps(diff, indent=2),
+					message=dumps(diff, indent=2),
 					title=_('E-Invoice: Edit Not Allowed')
 				)
 				frappe.throw(_('You cannot edit the invoice after generating EFRIS'), title=_('Edit Not Allowed'))

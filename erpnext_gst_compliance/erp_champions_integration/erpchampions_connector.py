@@ -194,9 +194,12 @@ class ErpChampionsConnector:
 			invoice_id = response["basicInformation"]["invoiceId"]
 			antifake_code = response["basicInformation"]["antifakeCode"]
 			qrcode = self.generate_qrcode(response["summary"]["qrCode"])
-			invoice_date = response["basicInformation"]["issuedDate"]
+			invoice_datetime = response["basicInformation"]["issuedDate"]
 			efris_log_info("invoice_date:" + str(invoice_date))
-			invoice_date = datetime.strptime(invoice_date, '%d/%m/%Y %H:%M:%S')
+			invoice_datetime = datetime.strptime(invoice_date, '%d/%m/%Y %H:%M:%S')
+			invoice_date = invoice_datetime.date()
+			invoice_time = invoice_datetime.time()
+
 
 			# seller details
 			seller_address = response["sellerDetails"]["address"]
@@ -225,6 +228,7 @@ class ErpChampionsConnector:
 				'status': status,
 				'qrcode_path': qrcode,
 				'invoice_date': invoice_date,
+				'issued_time': invoice_time,
 				'seller_trade_name': seller_trade_name,
 				'seller_legal_name': seller_legal_name,
 				'seller_nin_or_brn': nin_brn,

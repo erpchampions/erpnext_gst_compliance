@@ -25,6 +25,7 @@
   "invoice",
   "irn",
   "invoice_date",
+  "issued_time",
   "column_break_12",
   "seller_details_section",
   "seller_gstin",
@@ -162,9 +163,9 @@
   {
    "fetch_from": "invoice.posting_date",
    "fieldname": "invoice_date",
-   "fieldtype": "Datetime",
+   "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Invoice Date/Time",
+   "label": "Invoice Date",
    "reqd": 1
   },
   {
@@ -742,12 +743,18 @@
    "fieldname": "seller_nin_or_brn",
    "fieldtype": "Data",
    "label": "Seller NIN or BRN"
+  },
+  {
+   "fieldname": "issued_time",
+   "fieldtype": "Time",
+   "label": "Issued Time",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-10-11 22:01:16.614729",
+ "modified": "2023-10-13 17:20:49.838826",
  "modified_by": "Administrator",
  "module": "ERPNext GST Compliance",
  "name": "E Invoice",
