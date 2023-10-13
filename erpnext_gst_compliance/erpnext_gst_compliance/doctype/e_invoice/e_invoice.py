@@ -335,11 +335,13 @@ class EInvoice(Document):
 			self.dispatch_state_code = dispatch_address.gst_state_number
 
 	def set_item_details(self):
+		efris_log_info("set_item_details started")
 		sales_invoice_item_names = [d.name for d in self.sales_invoice.items]
 		e_invoice_item_names = [d.si_item_ref for d in self.items]
 		item_added_or_removed = sales_invoice_item_names != e_invoice_item_names
 		efris_log_info("item_added_or_removed:" +str(item_added_or_removed))
 		self.update_items_from_invoice()	
+		efris_log_info("set_item_details done")
 		#if item_added_or_removed:
 		#	self.update_items_from_invoice()
 		#else:
