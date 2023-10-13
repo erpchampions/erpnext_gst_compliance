@@ -9,10 +9,8 @@ frappe.listview_settings['E Invoice'] = {
 			"EFRIS Pending": "yellow",
 			"EFRIS Generated": "green",
 			"EFRIS Credit Note Pending": "orange",
-			"E-Way Bill Generated": "green",
 			"EFRIS Cancelled": "red",
-			"E-Way Bill Cancelled": "red",
-            "Cancelled": "red"
+			"Cancelled": "red"
 		};
 		return [__(doc.status), status_color[doc.status], "status,=,"+doc.status];
 	}

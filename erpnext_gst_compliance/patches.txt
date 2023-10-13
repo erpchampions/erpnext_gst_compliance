@@ -1,2 +1,1 @@
 erpnext_gst_compliance.patches.setup_einvoice_fields
-erpnext_gst_compliance.patches.copy_adequare_credentials

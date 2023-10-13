@@ -195,8 +195,8 @@ class ErpChampionsConnector:
 			antifake_code = response["basicInformation"]["antifakeCode"]
 			qrcode = self.generate_qrcode(response["summary"]["qrCode"])
 			invoice_datetime = response["basicInformation"]["issuedDate"]
-			efris_log_info("invoice_date:" + str(invoice_date))
-			invoice_datetime = datetime.strptime(invoice_date, '%d/%m/%Y %H:%M:%S')
+			efris_log_info("invoice_date:" + str(invoice_datetime))
+			invoice_datetime = datetime.strptime(invoice_datetime, '%d/%m/%Y %H:%M:%S')
 			invoice_date = invoice_datetime.date()
 			invoice_time = invoice_datetime.time()
 

@@ -50,14 +50,9 @@ class EInvoice(Document):
 	def update_sales_invoice(self):
 		frappe.db.set_value('Sales Invoice', self.invoice, {
 			'irn': self.irn,
-			'ack_no': self.ack_no,
-			'e_invoice': self.name,
-			'ack_date': self.ack_date,
-			'ewaybill': self.ewaybill,
 			'einvoice_status': self.status,
 			'qrcode_image': self.qrcode_path,
-			'irn_cancel_date': self.irn_cancel_date,
-			'eway_bill_validity': self.ewaybill_validity
+			'irn_cancel_date': self.irn_cancel_date
 		}, update_modified=False)
 
 	def on_cancel(self):
@@ -169,27 +164,29 @@ class EInvoice(Document):
   
 	def set_tax_details(self):
 		efris_log_info("set_tax_details()..")
-		# MOKI TODO: more work here to handle all  tax rate types (Standard, Excempt, 0-rated,..)
-					
-		taxes_list = []
+							
+		
 
 		for tax_item in self.sales_invoice.taxes:
 
 			accnt_id = tax_item.account_head
 			accnt = frappe.get_doc('Account', accnt_id)
 			efris_log_info("accnt name:" + str(accnt.account_name))
-			
+			self.taxes = []
+			taxes_list = []
+			efris_log_info("cleared taxes table here")
+
 			if tax_item.charge_type == "On Net Total" and accnt.account_name == "VAT":
 				efris_log_info("tax_item rate/total :" + str(tax_item.rate) + "/" + str(tax_item.total) )		
-				e_tax_category_code = e_tax_category_name = tax_rate = tax_amount = net_amount=gross_amount = None
+				tax_rate = tax_amount = net_amount=gross_amount = None
 				e_taxes_table = {}
 				for e_invoice_item in self.items:
 					e_tax_category = e_invoice_item.e_tax_category
 					tax_amount = e_invoice_item.tax
 					gross_amount = e_invoice_item.amount
 					net_amount = gross_amount - tax_amount
-					tax_rate = e_invoice_item.gst_rate/100
-
+					tax_rate = e_invoice_item.gst_rate
+					efris_log_info("tax_rate:" + str(tax_rate))
 					#e_tax_category = e_invoice_item.e_tax_category.split(':')
 					#efris_log_info("e_tax_category code:" + str(e_tax_category[0]))
 					if e_tax_category in e_taxes_table:
@@ -200,27 +197,29 @@ class EInvoice(Document):
 					else:
 						e_taxes_table[e_tax_category] = {'net_amount':net_amount,'tax_rate':tax_rate,'tax_amount':tax_amount,'gross_amount':gross_amount,'nr_items':1}
 				
-				for e_tax_category, data in e_taxes_table.items():
+				# Sort the e_taxes_table by e_tax_category
+				sorted_e_taxes_table_keys = sorted(e_taxes_table.keys())
 
+				for e_tax_category in sorted_e_taxes_table_keys:
+					data = e_taxes_table[e_tax_category]
+					efris_log_info("adding Taxes for e_tax_category:" + str(e_tax_category))
 					taxes = frappe._dict({
-						"tax_category_code" : e_tax_category, 
-						"net_amount" : data['net_amount'], # 
-						"tax_rate" : data['tax_rate'],
-						"tax_amount" : data['tax_amount'],
-						"gross_amount" : data['gross_amount'], 
-						"excise_unit" : "",
-						"excise_currency" : "",
-						"tax_rate_name" : ""
+						"tax_category_code": e_tax_category,
+						"net_amount": data['net_amount'],  # 
+						"tax_rate": data['tax_rate'],
+						"tax_amount": data['tax_amount'],
+						"gross_amount": data['gross_amount'],
+						"excise_unit": "",
+						"excise_currency": "",
+						"tax_rate_name": ""
 					})
-					taxes_list.append(taxes)
-		efris_log_info("clearing taxes table here")
-		self.taxes = []
-		self.taxes = taxes_list
-		#self.append("taxes", taxes)
-		#else:
-		#	return
-		
-	
+					self.append("taxes", taxes)
+
+					#taxes_list.append(taxes)
+				
+				#for tax in taxes_list:
+				# 	self.append("taxes", tax)
+				
 	def set_seller_details(self):
 		company_address = self.sales_invoice.company_address
 		if not company_address:
@@ -322,17 +321,17 @@ class EInvoice(Document):
 				self.shipping_pincode = 999999
 				self.shipping_place_of_supply = 96
 
-	def set_dispatch_details(self):
-		dispatch_address_name = self.sales_invoice.dispatch_address_name
-		if dispatch_address_name:
-			dispatch_address = frappe.get_all('Address', {'name': dispatch_address_name}, ['*'])[0]
+	# def set_dispatch_details(self):
+	# 	dispatch_address_name = self.sales_invoice.dispatch_address_name
+	# 	if dispatch_address_name:
+	# 		dispatch_address = frappe.get_all('Address', {'name': dispatch_address_name}, ['*'])[0]
 
-			self.dispatch_legal_name = dispatch_address.address_title
-			self.dispatch_location = dispatch_address.city
-			self.dispatch_pincode = dispatch_address.pincode
-			self.dispatch_address_line_1 = dispatch_address.address_line1
-			self.dispatch_address_line_2 = dispatch_address.address_line2
-			self.dispatch_state_code = dispatch_address.gst_state_number
+	# 		self.dispatch_legal_name = dispatch_address.address_title
+	# 		self.dispatch_location = dispatch_address.city
+	# 		self.dispatch_pincode = dispatch_address.pincode
+	# 		self.dispatch_address_line_1 = dispatch_address.address_line1
+	# 		self.dispatch_address_line_2 = dispatch_address.address_line2
+	# 		self.dispatch_state_code = dispatch_address.gst_state_number
 
 	def set_item_details(self):
 		efris_log_info("set_item_details started")
@@ -359,7 +358,15 @@ class EInvoice(Document):
 
 			is_service_item = item.gst_hsn_code[:2] == "99"
 
-			tax_template = frappe.get_doc("Item Tax Template",frappe.get_doc("Item",item.item_code).taxes[0].item_tax_template)
+			#tax_template = frappe.get_doc("Item Tax Template",frappe.get_doc("Item",item.item_code).taxes[0].item_tax_template)
+			item_doc = frappe.get_doc("Item", item.item_code)
+			if item_doc.taxes:
+				tax_template = frappe.get_doc("Item Tax Template", item_doc.taxes[0].item_tax_template)
+			else:
+				frappe.throw(_('Row #{}: Item {} must have Tax Template set under Tax tab')
+					.format(item.idx, item.item_code))
+				
+
 			efris_log_info("tax template done:" + str(tax_template.title))
 			efris_tax_category = tax_template.taxes[0].custom_e_tax_category
 			efris_log_info("efris_tax_category:" + str(efris_tax_category))
@@ -621,19 +628,23 @@ class EInvoice(Document):
 		}
 		
 	def get_tax_details(self):
-		#TODO Support multiple tax categories
-		return {
-			"taxDetails": [{
-				"taxCategoryCode": "01",
-				"netAmount": str(self.net_amount),
-				"taxRate": str(self.sales_invoice.taxes[0].rate/100),
-				"taxAmount": str(self.tax_amount),
-				"grossAmount": str(self.gross_amount),
+		item_list = []
+		for row in self.taxes:
+			#frappe.log_error(title="Item details", message=row.as_dict())
+			tax_item = {
+				"taxCategoryCode": row.tax_category_code.split(':')[0],
+				"netAmount": str(row.net_amount),
+				"taxRate": str(row.tax_rate),
+				"taxAmount": str(row.tax_amount),
+				"grossAmount": str(row.gross_amount),
 				"exciseUnit": "",
 				"exciseCurrency": "",
 				"taxRateName": ""
-			}]
-		}
+			}
+			item_list.append(tax_item)
+		return {
+			"taxDetails": item_list
+		}				
 
 	def get_summary(self):
 		return {
@@ -755,14 +766,15 @@ def validate_sales_invoice_change(doc, method=""):
 	if doc.docstatus == 0 and doc._action == 'save':
 		efris_log_info("saving..")
 		if frappe.db.exists('E Invoice', doc.name):
+			efris_log_info("found einvoice..")
 			einvoice = get_einvoice(doc.e_invoice)
 
 			einvoice_copy = get_einvoice(doc.e_invoice)
 			einvoice_copy.sync_with_sales_invoice()
 			
 			# to ignore changes in default fields
-			einvoice = remove_default_fields(einvoice)
-			einvoice_copy = remove_default_fields(einvoice_copy)
+			#einvoice = remove_default_fields(einvoice)
+			#einvoice_copy = remove_default_fields(einvoice_copy)
 			diff = get_diff(einvoice, einvoice_copy)
 	
 			if diff and einvoice.status in ['EFRIS Generated','EFRIS Credit Note Pending']:

@@ -9,11 +9,11 @@ app_color = "grey"
 app_email = "developers@erpnext.com"
 app_license = "GNU GPL v3.0"
 
-before_tests = [
-	"erpnext.setup.utils.before_tests",
-	"erpnext_gst_compliance.erpnext_gst_compliance.setup.before_test"
-]
-after_install = "erpnext_gst_compliance.erpnext_gst_compliance.setup.setup"
+# before_tests = [
+# 	"erpnext.setup.utils.before_tests",
+# 	"erpnext_gst_compliance.erpnext_gst_compliance.setup.before_test"
+# ]
+#after_install = "erpnext_gst_compliance.erpnext_gst_compliance.setup.setup"
 
 doctype_js = {
 	"Sales Invoice": "public/js/sales_invoice.js"
@@ -31,10 +31,6 @@ doc_events = {
 			"erpnext_gst_compliance.erpnext_gst_compliance.doctype.e_invoice.e_invoice.validate_sales_invoice_deletion",
 			"erpnext_gst_compliance.erpnext_gst_compliance.doctype.e_invoice.e_invoice.delete_e_invoice"
 		]
-	},
-	"Company": {
-		"after_insert": "erpnext_gst_compliance.erpnext_gst_compliance.setup.on_company_update",
-		"on_update": "erpnext_gst_compliance.erpnext_gst_compliance.setup.on_company_update"
 	}
 }
 

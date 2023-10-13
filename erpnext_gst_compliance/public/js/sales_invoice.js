@@ -50,7 +50,7 @@ frappe.ui.form.on('Sales Invoice', {
 		}
 
 
-		if (['EFRIS Generated', 'E-Way Bill Cancelled'].includes(einvoice_status)) {
+		if (['EFRIS Generated'].includes(einvoice_status)) {
 			// Cancel IRN
 			const fields = get_irn_cancellation_fields();
 			const action = () => {
