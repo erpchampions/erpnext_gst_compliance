@@ -1,0 +1,62 @@
+[
+ {
+  "class_name": null,
+  "commodity_name": "Pen or pencil sets",
+  "description": "Pen or pencil sets",
+  "docstatus": 0,
+  "doctype": "GST HSN Code",
+  "family_name": null,
+  "hsn_code": "44121702",
+  "modified": "2023-09-09 21:46:12.459253",
+  "name": "44121702",
+  "taxes": []
+ },
+ {
+  "class_name": null,
+  "commodity_name": "Paper pulp",
+  "description": "Paper pulp",
+  "docstatus": 0,
+  "doctype": "GST HSN Code",
+  "family_name": null,
+  "hsn_code": "14101501",
+  "modified": "2023-09-09 21:47:37.874864",
+  "name": "14101501",
+  "taxes": []
+ },
+ {
+  "class_name": null,
+  "commodity_name": "Actuarial consulting services",
+  "description": "Actuarial consulting services",
+  "docstatus": 0,
+  "doctype": "GST HSN Code",
+  "family_name": null,
+  "hsn_code": "80101512",
+  "modified": "2023-09-29 12:14:24.340958",
+  "name": "80101512",
+  "taxes": []
+ },
+ {
+  "class_name": null,
+  "commodity_name": "Industrial sector manpower development",
+  "description": null,
+  "docstatus": 0,
+  "doctype": "GST HSN Code",
+  "family_name": null,
+  "hsn_code": "86101805",
+  "modified": "2023-10-12 11:36:34.458761",
+  "name": "86101805",
+  "taxes": []
+ },
+ {
+  "class_name": null,
+  "commodity_name": "Potassium chloride for agricultural use",
+  "description": null,
+  "docstatus": 0,
+  "doctype": "GST HSN Code",
+  "family_name": null,
+  "hsn_code": "10171614",
+  "modified": "2023-10-12 12:41:08.679460",
+  "name": "10171614",
+  "taxes": []
+ }
+]
