@@ -130,13 +130,20 @@ class EInvoice(Document):
 		self.meterStatus = ""
   
 	def set_summary_details(self):
-		self.net_amount = self.sales_invoice.net_total
-		if len(self.sales_invoice.taxes) > 0:
-			self.tax_amount = self.sales_invoice.taxes[0].tax_amount
-		else:
-			self.tax_amount = 0
-		
-		self.gross_amount = self.sales_invoice.grand_total
+		self.net_amount = 0#self.sales_invoice.net_total
+		self.tax_amount = 0
+		#self.tax_amount = self.sales_invoice.taxes[0].tax_amount # bug in ERPNext total tax
+		for e_tax_item in self.taxes:
+			self.tax_amount = self.tax_amount + e_tax_item.tax_amount
+			self.net_amount = self.net_amount + e_tax_item.net_amount
+			efris_log_info("self.tax_amount, AFTER:" + str(self.tax_amount))
+			efris_log_info("self.net_amount, AFTER:" + str(self.net_amount))
+
+		self.net_amount = round(self.net_amount,2)
+		efris_log_info("self.net_amount, AFTER2:" + str(self.net_amount))
+		#self.tax_amount = round(self.tax_amount,2)
+		self.gross_amount = self.net_amount + self.tax_amount #self.sales_invoice.grand_total
+		efris_log_info("self.gross_amount, AFTER:" + str(self.gross_amount))
 		self.item_count = len(self.sales_invoice.items)
 		self.mode_code = 1 # Hardcode for now
 		self.remarks = ""
@@ -187,6 +194,7 @@ class EInvoice(Document):
 					tax_amount = e_invoice_item.tax
 					gross_amount = e_invoice_item.amount
 					net_amount = gross_amount - tax_amount
+					efris_log_info("net_amount during calc:" + str(net_amount))
 					tax_rate = decode_e_tax_rate(e_invoice_item.gst_rate,e_tax_category)
 					efris_log_info("tax_rate:" + str(tax_rate))
 					#e_tax_category = e_invoice_item.e_tax_category.split(':')
@@ -207,7 +215,7 @@ class EInvoice(Document):
 					efris_log_info("adding Taxes for e_tax_category:" + str(e_tax_category))
 					taxes = frappe._dict({
 						"tax_category_code": e_tax_category,
-						"net_amount": data['net_amount'],  # 
+						"net_amount": round(data['net_amount'],2),  # 
 						"tax_rate": data['tax_rate'],
 						"tax_amount": data['tax_amount'],
 						"gross_amount": data['gross_amount'],
@@ -389,10 +397,10 @@ class EInvoice(Document):
 				'gst_hsn_code': item.gst_hsn_code,
 				'quantity': abs(item.qty),
 				'unit': item.uom, 
-				'rate': item.rate,
+				'rate': round(item.rate,2),
 				'tax': round(item_taxes[item.item_code][1], 2),
 				'gst_rate':  decode_e_tax_rate(round(item_taxes[item.item_code][0]/100,2),efris_tax_category),
-				'amount': item.amount,
+				'amount': round(item.amount,2),
 				'order_number': i,
 				'e_tax_category': efris_tax_category,
 				'hsn_code_description': frappe.get_doc("GST HSN Code", item.gst_hsn_code).commodity_name
