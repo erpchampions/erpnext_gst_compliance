@@ -162,6 +162,8 @@ class EInvoice(Document):
 		elif gst_category == 'Foreigner': self.supply_type = 2
 		elif gst_category == 'B2G': self.supply_type = 3
   
+
+	
 	def set_tax_details(self):
 		efris_log_info("set_tax_details()..")
 							
@@ -185,7 +187,7 @@ class EInvoice(Document):
 					tax_amount = e_invoice_item.tax
 					gross_amount = e_invoice_item.amount
 					net_amount = gross_amount - tax_amount
-					tax_rate = e_invoice_item.gst_rate
+					tax_rate = decode_e_tax_rate(e_invoice_item.gst_rate,e_tax_category)
 					efris_log_info("tax_rate:" + str(tax_rate))
 					#e_tax_category = e_invoice_item.e_tax_category.split(':')
 					#efris_log_info("e_tax_category code:" + str(e_tax_category[0]))
@@ -389,7 +391,7 @@ class EInvoice(Document):
 				'unit': item.uom, 
 				'rate': item.rate,
 				'tax': round(item_taxes[item.item_code][1], 2),
-				'gst_rate': round(item_taxes[item.item_code][0]/100,2),
+				'gst_rate':  decode_e_tax_rate(round(item_taxes[item.item_code][0]/100,2),efris_tax_category),
 				'amount': item.amount,
 				'order_number': i,
 				'e_tax_category': efris_tax_category,
@@ -581,6 +583,7 @@ class EInvoice(Document):
 			}
 		}
 
+
 	def get_good_details(self):
 		item_list = []
 		for row in self.items:
@@ -597,7 +600,7 @@ class EInvoice(Document):
 				"unitOfMeasure": efris_uom_code,
 				"unitPrice": str(row.rate),
 				"total": str(row.amount),
-				"taxRate": str(row.gst_rate), # Get from Uganda tax template
+				"taxRate": decode_e_tax_rate(str(row.gst_rate),row.e_tax_category), # Get from Uganda tax template
 				"tax": str(row.tax),
 				"discountTotal": "",
 				"discountTaxRate": "0.00",
@@ -731,6 +734,16 @@ class EInvoice(Document):
 
 		return eway_bill_details
 
+def decode_e_tax_rate(tax_rate, e_tax_category):
+	e_tax_code = e_tax_category.split(':')[0]
+	if e_tax_code =='01':
+		return '0.18' #TODO don't hard code
+	if e_tax_code =='02':
+		return '0'
+	if e_tax_code =='03':
+		return '-'
+	return str(tax_rate)
+	
 def create_einvoice(sales_invoice):
 	if frappe.db.exists('E Invoice', sales_invoice):
 		einvoice = frappe.get_doc('E Invoice', sales_invoice)
