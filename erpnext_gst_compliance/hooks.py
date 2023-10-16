@@ -55,4 +55,4 @@ user_data_fields = [
 	}
 ]
 
-#fixtures = ["Item"]
+fixtures = ["E Tax Category"]
