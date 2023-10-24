@@ -55,4 +55,7 @@ user_data_fields = [
 	}
 ]
 
-fixtures = ["E Tax Category", "GST HSN Code","UOM"]
+fixtures = [
+		"E Tax Category", 
+		"GST HSN Code","UOM"
+    ]
