@@ -59,3 +59,4 @@ fixtures = [
 		"E Tax Category", 
 		"GST HSN Code","UOM"
     ]
+
