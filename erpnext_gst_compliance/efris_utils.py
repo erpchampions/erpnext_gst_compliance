@@ -21,7 +21,7 @@ from Crypto.Hash import SHA1
 import os
 #from frappe.utils import get_site_path
 import logging
-logging.basicConfig(filename='/workspace/development/frappe-bench/logs/efris_logfile.log', level=logging.DEBUG)
+
 from datetime import datetime
 import pytz
 from collections import defaultdict
@@ -29,6 +29,23 @@ from collections import defaultdict
 #logging.info("This is an info message")
 #logging.warning("This is a warning message")
 #logging.error("This is an error message")
+
+# Determine the base directory of frappe-bench
+base_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Traverse up to the frappe-bench directory
+frappe_bench_dir = os.path.abspath(os.path.join(base_dir, '..', '..'))
+
+# Define the logs directory relative to frappe-bench
+log_dir = os.path.join(frappe_bench_dir, 'logs')
+
+# Ensure the logs directory exists
+os.makedirs(log_dir, exist_ok=True)
+
+# Define the log file path
+log_file_path = os.path.join(log_dir, 'efris_logfile.log')
+#logging.basicConfig(filename='/workspace/development/frappe-bench/logs/efris_logfile.log', level=logging.DEBUG)
+logging.basicConfig(filename=log_file_path, level=logging.DEBUG)
 
 def efris_log_info(message):
     logging.info(message)
