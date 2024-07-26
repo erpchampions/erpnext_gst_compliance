@@ -49,7 +49,7 @@ def generate_irn(sales_invoice):
 	success, errors = connector.generate_irn(einvoice)
 
 	if not success:
-		frappe.throw(errors, title=_('EFRIS Generation Failed'), as_list=1)
+		frappe.msgprint(errors, title=_('EFRIS Generation Failed'), as_list=1)
 	else:
 		frappe.msgprint(_("EFRIS Generated Successfully."), alert=1)
 

@@ -127,7 +127,8 @@ class ErpChampionsConnector:
 
 		einvoice_json = self.einvoice.get_einvoice_json()
 		#frappe.log_error(title="ErpChampionsConnector Einvoice", message=einvoice_json)
-		efris_log_info("einvoice_json" + str(einvoice_json))
+		#efris_log_info("einvoice_json" + str(einvoice_json))
+		efris_log_info("einvoice_json 1")
 
 		# response = self.make_request('post', url, headers, payload)
 		status, response = erpnext_gst_compliance.efris_utils.make_post("T109", einvoice_json)

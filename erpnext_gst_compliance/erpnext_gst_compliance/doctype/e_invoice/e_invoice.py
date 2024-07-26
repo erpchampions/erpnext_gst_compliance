@@ -772,6 +772,7 @@ def create_einvoice(sales_invoice):
 	return einvoice
 
 def get_einvoice(sales_invoice):
+	efris_log_info("getting einvoice now...")
 	return frappe.get_doc('E Invoice', sales_invoice)
 
 def validate_sales_invoice_change(doc, method=""):
@@ -788,10 +789,14 @@ def validate_sales_invoice_change(doc, method=""):
 		efris_log_info("saving..")
 		if frappe.db.exists('E Invoice', doc.name):
 			efris_log_info("found einvoice..")
-			einvoice = get_einvoice(doc.e_invoice)
+			einvoice = get_einvoice(doc.name)
+			
+			efris_log_info("found einvoice 2..")
 
-			einvoice_copy = get_einvoice(doc.e_invoice)
+			einvoice_copy = get_einvoice(doc.name)
+			efris_log_info("found einvoice 3..")
 			einvoice_copy.sync_with_sales_invoice()
+			efris_log_info("found einvoice 4..")
 			
 			# to ignore changes in default fields
 			#einvoice = remove_default_fields(einvoice)
